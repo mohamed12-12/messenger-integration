@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Nanovate — Connect Messenger</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 60px 48px;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            color: #1A56DB;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #6B7280;
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 22px;
+            color: #111827;
+            margin-bottom: 12px;
+        }
+
+        p {
+            color: #6B7280;
+            font-size: 15px;
+            margin-bottom: 36px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: #1877F2;
+            color: white;
+            padding: 16px 32px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #1464D8;
+        }
+
+        .error {
+            color: #DC2626;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class='card'>
+        <div class='logo'>nanovate.io</div>
+        <div class='subtitle'>AI Agent Platform</div>
+        <h1>Connect Your Messenger</h1>
+        <p>Allow Nanovate to connect your Facebook Page
+            to your AI agent. Your agent will be able to
+            send and receive messages automatically.</p>
+        <a href='/connect' class='btn'>
+            <svg width='24' height='24' viewBox='0 0 24 24' fill='white'>
+                <path d='M12 2C6.477 2 2 6.145 2 11.243c0 2.936 1.444 5.56
+        3.7 7.29V22l3.37-1.86c.9.25 1.856.386 2.845.386 5.523 0
+        10-4.145 10-9.243S17.523 2 12 2z' />
+            </svg>
+            Connect with Facebook
+        </a>
+        {% if error %}
+        <p class='error'>{{ error }}</p>
+        {% endif %}
+    </div>
+</body>
+
+</html>
