@@ -62,7 +62,7 @@ GRAPH_VERSION = 'v22.0'
 GRAPH_BASE    = f'https://graph.facebook.com/{GRAPH_VERSION}'
 
 # Permissions requested from the user
-SCOPES = 'pages_messaging,pages_manage_metadata,pages_read_engagement'
+SCOPES = 'pages_messaging,pages_manage_metadata,pages_read_engagement,pages_show_list'
 
 
 # ─── HELPER: Verify Meta Webhook Signature ────────────────────────────────────
@@ -212,8 +212,9 @@ def auth_callback():
 
     pages = pages_data.get('data', [])
     if not pages:
-        logger.warning("No Facebook Pages found for this user.")
-        return render_template('index.html', error='No Facebook Pages found on your account.'), 400
+        logger.warning("No Facebook Pages found for this user. Raw response: %s", pages_data)
+        error_msg = f"No Facebook Pages found on your account. Meta API Response: {json.dumps(pages_data)}"
+        return render_template('index.html', error=error_msg), 400
 
     # Use the first page (production note: let user choose if they manage multiple)
     first_page        = pages[0]
