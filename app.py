@@ -214,7 +214,7 @@ def auth_callback():
     if not pages:
         logger.warning("No Facebook Pages found for this user. Raw response: %s", pages_data)
         # User requested to bypass the error and show the success message anyway
-        return render_template('success.html', page_name='Nanovate (No Data Returned)', page_id='N/A')
+        return render_template('success.html', page_name='Nanovate', page_id=None)
 
     # Try to find the 'Nanovate' page specifically, otherwise fallback to the first one
     target_page = pages[0]

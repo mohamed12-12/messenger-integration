@@ -75,7 +75,9 @@
         <div class='icon'>✅</div>
         <h1>Successfully Connected!</h1>
         <div class='page-name'>{{ page_name }}</div>
+        {% if page_id %}
         <div class='page-id'>Page ID: {{ page_id }}</div>
+        {% endif %}
         <p>Your Facebook Messenger is now linked to your
             AI agent. Your agent will start handling messages
             automatically.</p>
