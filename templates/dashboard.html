@@ -4,299 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard — Nanovate</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #0062ff;
-            --primary-light: #3381ff;
-            --bg: #0f172a;
-            --nav-bg: #1e293b;
-            --card-bg: rgba(255, 255, 255, 0.03);
-            --card-border: rgba(255, 255, 255, 0.08);
-            --text-main: #f8fafc;
-            --text-sub: #94a3b8;
-            --success: #10b981;
-            --warning: #f59e0b;
+            --bg: #6D68D0;
+            --text-main: #111827;
+            --text-sub: #6B7280;
+            --primary: #1877F2;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text-main);
+            background-color: var(--bg);
             min-height: 100vh;
+            padding: 40px;
         }
 
-        nav {
-            background: var(--nav-bg);
-            border-bottom: 1px solid var(--card-border);
-            padding: 16px 40px;
+        .navbar {
+            max-width: 1200px;
+            margin: 0 auto 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .logo {
-            font-family: 'Outfit', sans-serif;
-            font-size: 24px;
-            font-weight: 800;
             color: white;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
 
-        .page-badge {
-            background: rgba(0, 98, 255, 0.1);
-            color: var(--primary-light);
-            border: 1px solid rgba(0, 98, 255, 0.2);
-            padding: 6px 16px;
-            border-radius: 99px;
-            font-size: 14px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+        .page-badge { 
+            background: rgba(255, 255, 255, 0.2); 
+            padding: 8px 16px; border-radius: 20px; 
+            font-size: 14px; font-weight: 600; 
         }
 
         main {
             max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 40px;
+            margin: 0 auto;
             display: grid;
-            grid-template-columns: 1fr 340px;
+            grid-template-columns: 1fr 360px;
             gap: 40px;
         }
 
-        @media (max-width: 900px) {
-            main { grid-template-columns: 1fr; }
-        }
-
-        .section-header {
-            margin-bottom: 32px;
-        }
-
-        .section-header h2 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 28px;
-            margin-bottom: 8px;
-        }
-
-        .section-header p {
-            color: var(--text-sub);
-            font-size: 15px;
-        }
+        @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
 
         .card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
+            background: white;
+            border-radius: 24px;
+            padding: 48px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
+
+        h2 { font-size: 24px; margin-bottom: 8px; color: var(--text-main); }
+        .desc { color: var(--text-sub); margin-bottom: 32px; font-size: 16px; }
 
         .form-group { margin-bottom: 24px; }
-
-        label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #cbd5e1;
-        }
-
+        label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--text-main); }
         input, textarea {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 16px;
-            color: white;
-            font-size: 16px;
-            transition: border-color 0.3s;
-            outline: none;
+            width: 100%; padding: 16px; border: 1px solid #e5e7eb;
+            border-radius: 12px; font-size: 16px; outline: none; transition: border-color 0.2s;
         }
-
         input:focus, textarea:focus { border-color: var(--primary); }
 
         .btn-send {
-            background: var(--primary);
-            color: white;
-            padding: 18px;
-            border-radius: 12px;
-            border: none;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
+            background: var(--primary); color: white; border: none;
+            padding: 18px 32px; border-radius: 12px; font-weight: 700;
+            font-size: 16px; cursor: pointer; width: 100%; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
         }
+        .btn-send:hover { background: #166fe5; transform: translateY(-1px); }
 
-        .btn-send:hover { background: var(--primary-light); transform: translateY(-2px); }
-        .btn-send:disabled { background: #334155; cursor: not-allowed; transform: none; }
-
-        /* Recent Activity Feed */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
+        .sidebar { display: flex; flex-direction: column; gap: 24px; }
         .activity-card {
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 24px;
+            background: white; border-radius: 20px; padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
+        .activity-card h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-sub); margin-bottom: 16px; }
 
-        .activity-card h3 {
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-sub);
-            margin-bottom: 16px;
-        }
+        .msg-list { display: flex; flex-direction: column; gap: 12px; }
+        .msg-item { padding: 12px; background: #f9fafb; border-radius: 12px; border-left: 4px solid var(--primary); }
+        .msg-item .psid { font-size: 11px; font-family: monospace; color: var(--primary); cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .msg-item .text { font-size: 13px; margin-top: 4px; color: #374151; }
 
-        .msg-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .msg-item {
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 10px;
-            border-left: 3px solid var(--primary);
-        }
-
-        .msg-item .psid {
-            font-size: 11px;
-            font-family: monospace;
-            color: var(--primary-light);
-            cursor: pointer;
-            text-decoration: underline;
-        }
-
-        .msg-item .text {
-            font-size: 13px;
-            margin-top: 4px;
-            color: #e2e8f0;
-        }
-
-        .empty-msgs {
-            font-size: 13px;
-            color: var(--text-sub);
-            text-align: center;
-            padding: 20px;
-            border: 1px dashed var(--card-border);
-            border-radius: 10px;
-        }
-
-        .result-box {
-            margin-top: 32px;
-            padding: 20px;
-            border-radius: 14px;
-            display: none;
-            animation: fadeIn 0.4s ease-out;
-        }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .result-success { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--success); }
-        .result-error { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; }
-
-        .reviewer-box {
-            background: rgba(245, 158, 11, 0.05);
-            border: 1px solid rgba(245, 158, 11, 0.2);
-            border-radius: 20px;
-            padding: 24px;
-            margin-top: 40px;
-        }
-
-        .reviewer-box h3 {
-            font-size: 16px;
-            color: var(--warning);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .reviewer-box li {
-            font-size: 14px;
-            color: #d1d5db;
-            margin-bottom: 8px;
-            list-style: none;
-            display: flex;
-            gap: 12px;
-        }
-
-        .reviewer-box .num {
-            background: var(--warning);
-            color: black;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 800;
-            flex-shrink: 0;
-        }
+        .result-box { margin-top: 24px; padding: 16px; border-radius: 12px; display: none; }
+        .result-success { background: #dcfce7; color: #166534; border: 1px solid #bbfcce; font-size: 14px; }
+        .result-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; font-size: 14px; }
     </style>
 </head>
 <body>
-    <nav>
-        <div class="logo">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--primary)">
-                <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.936 1.444 5.56 3.7 7.29V22l3.37-1.86c.9.25 1.856.386 2.845.386 5.523 0 10-4.145 10-9.243S17.523 2 12 2z" />
-            </svg>
-            nanovate.io
-        </div>
-        <div class="page-badge" title="Currently active Facebook Page asset" id="page-badge">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
-            </svg>
-            Connected: <strong>{{ page_name }}</strong>
-        </div>
-    </nav>
+    <div class="navbar">
+        <div class="logo">nanovate.io</div>
+        <div class="page-badge">Connected: {{ page_name }}</div>
+    </div>
 
     <main>
         <div class="container">
-            <div class="section-header">
-                <h2>Live Send Action</h2>
-                <p>Demonstrate the end-to-end messaging capability for Meta App Review.</p>
-            </div>
-
             <div class="card">
+                <h2>Live Send Action</h2>
+                <p class="desc">Send a response to a customer on Facebook Messenger.</p>
+                
                 <form id="sendForm">
                     <div class="form-group">
-                        <label for="recipient_id">Recipient PSID (Page-Scoped ID)</label>
-                        <input type="text" id="recipient_id" name="recipient_id" placeholder="Paste PSID from the feed →" required>
-                        <div style="font-size: 12px; color: var(--text-sub); margin-top: 8px;">
-                            The PSID is unique to your user interaction with the Page. Use the "Incoming Events" feed to identify it.
-                        </div>
+                        <label for="recipient_id">Recipient PSID</label>
+                        <input type="text" id="recipient_id" name="recipient_id" placeholder="Copy PSID from the feed" required>
                     </div>
                     <div class="form-group">
                         <label for="message">Message Response</label>
-                        <textarea id="message" name="message" rows="4" placeholder="Hello from Nanovate! This is a test response." required></textarea>
+                        <textarea id="message" name="message" rows="4" placeholder="Type your message here..." required></textarea>
                     </div>
                     <button type="submit" class="btn-send" id="btn-submit">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="22" y1="2" x2="11" y2="13"></line>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                         </svg>
                         Send Message Now
                     </button>
@@ -304,43 +122,14 @@
 
                 <div id="result" class="result-box"></div>
             </div>
-
-            <div class="reviewer-box">
-                <h3>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                        <circle cx="12" cy="13" r="4"></circle>
-                    </svg>
-                    Screencast Checklist
-                </h3>
-                <ul>
-                    <li><span class="num">1</span> Go to Facebook/Messenger and send a message to <b>{{ page_name }}</b>.</li>
-                    <li><span class="num">2</span> Watch the <b>"Incoming Events"</b> feed on the right refresh with your message.</li>
-                    <li><span class="num">3</span> Click the <b>PSID</b> to copy it into the Recipient field.</li>
-                    <li><span class="num">4</span> Send a response and show the <b>Success Message</b>.</li>
-                    <li><span class="num">5</span> Switch to Messenger and show the response appearing in the chat.</li>
-                </ul>
-            </div>
         </div>
 
         <div class="sidebar">
             <div class="activity-card">
-                <h3>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-right: 4px;">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    Incoming Events (Live)
-                </h3>
+                <h3>Incoming Events (Live)</h3>
                 <div id="msg-feed" class="msg-list">
-                    <!-- Dynamic Feed -->
-                    <div class="empty-msgs">Waiting for messages...</div>
+                    <div style="text-align: center; color: #9ca3af; padding: 20px; border: 1px dashed #e5e7eb; border-radius: 10px; font-size: 13px;">Waiting for messages...</div>
                 </div>
-            </div>
-
-            <div style="background: rgba(255, 255, 255, 0.03); padding: 20px; border-radius: 16px; border: 1px solid var(--card-border); font-size: 13px; color: var(--text-sub);">
-                <b>Pro Tip:</b> This dashboard uses <code>v22.0</code> of the Graph API. All events are verified via HMAC signature.
-                <div style="margin-top: 10px; font-size: 10px; opacity: 0.5;">Build: 2026-04-02-B</div>
             </div>
         </div>
     </main>
@@ -351,56 +140,37 @@
         const result = document.getElementById('result');
         const feed = document.getElementById('msg-feed');
 
-        // Copy PSID Helper
-        function copyPSID(id) {
-            document.getElementById('recipient_id').value = id;
-            result.style.display = 'none';
-        }
+        function copyPSID(id) { document.getElementById('recipient_id').value = id; }
 
-        // Fetch Recent Messages
         async function updateFeed() {
             try {
                 const response = await fetch('/api/recent-messages');
                 const messages = await response.json();
-                
-                if (messages.length === 0) {
-                    feed.innerHTML = '<div class="empty-msgs">Waiting for messages...</div>';
-                    return;
-                }
-
+                if (messages.length === 0) return;
                 feed.innerHTML = messages.map(m => `
                     <div class="msg-item">
-                        <div class="psid" onclick="copyPSID('${m.sender_id}')" title="Click to copy PSID">Sender: ${m.sender_id}</div>
+                        <div class="psid" onclick="copyPSID('${m.sender_id}')" title="Click to copy PSID">PSID: ${m.sender_id}</div>
                         <div class="text">"${m.text}"</div>
                     </div>
                 `).join('');
-            } catch (err) {
-                console.error('Feed error:', err);
-            }
+            } catch (err) { console.error(err); }
         }
 
-        // Poll for new messages every 3 seconds
         setInterval(updateFeed, 3000);
         updateFeed();
 
         form.onsubmit = async (e) => {
             e.preventDefault();
             btn.disabled = true;
-            btn.innerHTML = 'Executing...';
-            result.style.display = 'none';
-
+            btn.innerHTML = 'Sending...';
             const formData = new FormData(form);
             try {
-                const response = await fetch('/send-message', {
-                    method: 'POST',
-                    body: formData
-                });
+                const response = await fetch('/send-message', { method: 'POST', body: formData });
                 const data = await response.json();
-
                 result.style.display = 'block';
                 if (data.success) {
                     result.className = 'result-box result-success';
-                    result.innerHTML = `<strong>Delivery Success!</strong><br>Message ID: <code style="font-size: 12px; color: white;">${data.result.message_id}</code>`;
+                    result.innerHTML = `<strong>Success!</strong> Message ID: ${data.result.message_id}`;
                 } else {
                     result.className = 'result-box result-error';
                     const msg = data.error?.error?.message || JSON.stringify(data.error);
@@ -409,10 +179,10 @@
             } catch (err) {
                 result.style.display = 'block';
                 result.className = 'result-box result-error';
-                result.innerHTML = `<strong>Network Error:</strong> ${err.message}`;
+                result.innerHTML = `<strong>Error:</strong> ${err.message}`;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> Send Message Now';
+                btn.innerHTML = 'Send Message Now';
             }
         }
     </script>

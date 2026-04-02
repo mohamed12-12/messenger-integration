@@ -6,17 +6,13 @@
     <title>Connect Messenger — Nanovate</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #0062ff;
-            --primary-hover: #0052d4;
-            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            --card-bg: rgba(255, 255, 255, 0.03);
-            --card-border: rgba(255, 255, 255, 0.08);
-            --text-main: #f8fafc;
-            --text-sub: #94a3b8;
-            --facebook: #1877F2;
+            --primary: #1877F2;
+            --bg: #6D68D0; /* Purple background from screenshot */
+            --text-main: #1C1E21;
+            --text-sub: #65676B;
         }
 
         * {
@@ -26,253 +22,97 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-gradient);
-            color: var(--text-main);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow-x: hidden;
+            padding: 20px;
         }
-
-        /* Abstract Background Elements */
-        .blob {
-            position: absolute;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(0, 98, 255, 0.15) 0%, transparent 70%);
-            border-radius: 50%;
-            z-index: -1;
-            filter: blur(40px);
-        }
-        .blob-1 { top: -200px; right: -200px; }
-        .blob-2 { bottom: -200px; left: -200px; }
 
         .card {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--card-border);
+            background: white;
             border-radius: 24px;
-            padding: 64px 48px;
-            max-width: 540px;
-            width: 90%;
+            padding: 80px 48px;
+            max-width: 680px;
+            width: 100%;
             text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.8s ease-out;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--primary);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 20px rgba(0, 98, 255, 0.4);
-        }
-
-        .logo-text {
-            font-family: 'Outfit', sans-serif;
-            font-size: 32px;
+        .logo {
+            font-size: 42px;
             font-weight: 800;
-            letter-spacing: -0.5px;
-            background: linear-gradient(to right, #fff, #94a3b8);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #0052ff;
+            margin-bottom: 4px;
+            letter-spacing: -1px;
         }
 
         .subtitle {
-            color: var(--primary);
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 32px;
+            color: #8c96a3;
+            font-size: 18px;
+            margin-bottom: 56px;
         }
 
         h1 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 40px;
+            font-size: 32px;
+            color: #111827;
+            margin-bottom: 24px;
             font-weight: 700;
-            line-height: 1.1;
-            margin-bottom: 20px;
-            color: white;
         }
 
         p {
-            color: var(--text-sub);
-            font-size: 17px;
-            margin-bottom: 48px;
+            color: #8c96a3;
+            font-size: 19px;
+            margin-bottom: 64px;
             line-height: 1.6;
+            max-width: 520px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .btn-facebook {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 14px;
-            background: var(--facebook);
+            gap: 12px;
+            background: #1877F2;
             color: white;
-            padding: 18px 36px;
+            padding: 20px 48px;
             border-radius: 14px;
             text-decoration: none;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.2s;
             width: 100%;
-            cursor: pointer;
+            max-width: 380px;
         }
 
         .btn-facebook:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 24px -8px rgba(24, 119, 242, 0.5);
             background: #166fe5;
         }
 
-        .btn-facebook:active {
-            transform: translateY(0);
-        }
-
-        .help-text {
-            font-size: 13px;
-            color: var(--text-sub);
-            margin-top: 16px;
-            opacity: 0.8;
-        }
-
-        .reviewer-info {
-            margin-top: 48px;
-            text-align: left;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--card-border);
-            padding: 24px;
-            border-radius: 18px;
-        }
-
-        .reviewer-info h3 {
-            font-size: 14px;
-            color: #fbbf24;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .reviewer-info p {
-            font-size: 14px;
-            margin-bottom: 0;
-            color: #94a3b8;
-        }
-
-        .badge {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-family: monospace;
-            font-size: 12px;
-            color: #e2e8f0;
-        }
-
-        .error-toast {
-            position: fixed;
-            top: 24px;
-            right: 24px;
-            background: #ef4444;
-            color: white;
-            padding: 16px 24px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .btn-facebook svg {
+            width: 28px;
+            height: 28px;
         }
     </style>
 </head>
 <body>
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-
-    {% if error %}
-    <div class="error-toast">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        {{ error }}
-    </div>
-    {% endif %}
-
     <div class="card">
-        <div class="logo-container">
-            <div class="logo-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                    <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.936 1.444 5.56 3.7 7.29V22l3.37-1.86c.9.25 1.856.386 2.845.386 5.523 0 10-4.145 10-9.243S17.523 2 12 2z" />
-                </svg>
-            </div>
-            <div class="logo-text">nanovate.io</div>
-        </div>
-        <div class="subtitle">Official Meta AI Integration</div>
+        <div class="logo">nanovate.io</div>
+        <div class="subtitle">AI Agent Platform</div>
         
-        <h1>Scale Customer Engagement</h1>
-        <p>Authorize our platform to interact with your customers on Facebook Messenger. This creates a seamless, automated communication channel for your business.</p>
+        <h1>Connect Your Messenger</h1>
+        <p>Allow Nanovate to connect your Facebook Page to your AI agent. Your agent will be able to send and receive messages automatically.</p>
         
-        <a href="/connect" class="btn-facebook" id="loginBtn" title="Initiate the Meta OAuth Login flow">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+        <a href="/connect" class="btn-facebook">
+            <svg viewBox="0 0 24 24" fill="white">
+                <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.936 1.444 5.56 3.7 7.29V22l3.37-1.86c.9.25 1.856.386 2.845.386 5.523 0 10-4.145 10-9.243S17.523 2 12 2z" />
             </svg>
-            Continue with Facebook
+            Connect with Facebook
         </a>
-        
-        <div class="help-text">
-            This starts the official <strong>Meta Login Flow</strong> to authorize this application.
-        </div>
-
-        <div class="reviewer-info">
-            <h3>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-                Meta App Review Guide
-            </h3>
-            <p>
-                Clicking the button above initiates the end-to-end user flow. 
-                The app will request <span class="badge">pages_messaging</span> 
-                and <span class="badge">pages_show_list</span> permissions to demonstrate the 
-                messaging use case.
-            </p>
-        </div>
     </div>
-
-    <script>
-        document.getElementById('loginBtn').addEventListener('click', function() {
-            this.style.opacity = '0.7';
-            this.innerHTML = '<svg class="spinner" width="24" height="24" viewBox="0 0 50 50" style="animation: rotate 2s linear infinite;"><circle cx="25" cy="25" r="20" fill="none" stroke="white" stroke-width="5" stroke-dasharray="80, 200" stroke-dashoffset="0"></circle></svg> Redirecting...';
-        });
-    </script>
-    <style>
-        @keyframes rotate { 100% { transform: rotate(360deg); } }
-    </style>
 </body>
 </html>

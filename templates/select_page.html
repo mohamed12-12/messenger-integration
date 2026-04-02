@@ -4,196 +4,95 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Asset — Nanovate</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #0062ff;
-            --primary-hover: #0052d4;
-            --bg: #0f172a;
-            --card-bg: rgba(255, 255, 255, 0.03);
-            --card-border: rgba(255, 255, 255, 0.08);
-            --text-main: #f8fafc;
-            --text-sub: #94a3b8;
+            --bg: #6D68D0;
+            --text-main: #111827;
+            --text-sub: #6B7280;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text-main);
+            background-color: var(--bg);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 40px 20px;
+            padding: 20px;
         }
 
         .container {
-            max-width: 600px;
+            background: white;
+            border-radius: 24px;
+            padding: 60px 40px;
             width: 100%;
-            animation: slideUp 0.6s ease-out;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .header {
+            max-width: 600px;
             text-align: center;
-            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
 
-        .header h1 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 32px;
-            margin-bottom: 12px;
-        }
+        h1 { font-size: 28px; margin-bottom: 8px; color: var(--text-main); }
+        .desc { color: var(--text-sub); margin-bottom: 40px; font-size: 16px; }
 
-        .header p {
-            color: var(--text-sub);
-            font-size: 16px;
-        }
-
-        .page-list {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
+        .page-list { display: flex; flex-direction: column; gap: 16px; }
 
         .page-item {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
             border-radius: 16px;
-            padding: 24px;
+            padding: 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            transition: all 0.3s ease;
             text-decoration: none;
             color: inherit;
+            transition: all 0.2s;
         }
 
-        .page-item:hover {
-            background: rgba(255, 255, 255, 0.06);
-            border-color: var(--primary);
-            transform: scale(1.02);
-            box-shadow: 0 10px 30px -10px rgba(0, 98, 255, 0.2);
-        }
+        .page-item:hover { border-color: #3b82f6; background: #f3f4f6; }
 
-        .page-info {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
+        .page-info { display: flex; align-items: center; gap: 16px; text-align: left; }
 
         .page-avatar {
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Outfit', sans-serif;
-            font-size: 24px;
-            font-weight: 800;
-            color: white;
-            box-shadow: 0 8px 16px rgba(0, 98, 255, 0.2);
+            width: 48px; height: 48px;
+            background: #3b82f6; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 700; font-size: 20px;
         }
 
-        .page-details h3 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
+        .page-name { font-weight: 600; font-size: 17px; margin-bottom: 2px; }
+        .page-id { font-size: 12px; color: var(--text-sub); font-family: monospace; }
 
-        .page-details p {
-            font-size: 13px;
-            color: var(--text-sub);
-            font-family: monospace;
-        }
-
-        .select-icon {
-            color: var(--primary);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .page-item:hover .select-icon {
-            opacity: 1;
-        }
-
-        .no-pages {
-            text-align: center;
-            padding: 60px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 2px dashed var(--card-border);
-            border-radius: 20px;
-        }
-
-        .reviewer-note {
-            margin-top: 48px;
-            background: rgba(251, 191, 36, 0.05);
-            border: 1px solid rgba(251, 191, 36, 0.2);
-            padding: 24px;
-            border-radius: 16px;
-            display: flex;
-            gap: 16px;
-        }
-
-        .reviewer-note b { color: #fbbf24; }
-        .reviewer-note p { font-size: 14px; color: #d1d5db; line-height: 1.5; }
+        .select-icon { color: #3b82f6; width: 24px; height: 24px; }
     </style>
 </head>
 <body>
-    <div class="container" role="main" id="select-asset">
-        <div class="header">
-            <h1>Asset Selection</h1>
-            <p>Choose the Facebook Page you want to integrate with Nanovate.</p>
-        </div>
+    <div class="container">
+        <h1>Asset Selection</h1>
+        <p class="desc">Please select the Facebook Page you want to connect.</p>
 
         <div class="page-list">
             {% for page in pages %}
-            <a href="/connect-page/{{ page.id }}" class="page-item" id="page-{{ page.id }}" title="Click to connect and proceed to the dashboard for {{ page.name }}">
+            <a href="/connect-page/{{ page.id }}" class="page-item" id="page-{{ page.id }}">
                 <div class="page-info">
                     <div class="page-avatar">{{ page.name[0] | upper }}</div>
-                    <div class="page-details">
-                        <h3>{{ page.name }}</h3>
-                        <p>ID: {{ page.id }}</p>
+                    <div>
+                        <div class="page-name">{{ page.name }}</div>
+                        <div class="page-id">ID: {{ page.id }}</div>
                     </div>
                 </div>
                 <div class="select-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
                 </div>
             </a>
             {% else %}
-            <div class="no-pages">
-                <p>No managed Pages found. Ensure you granted permissions during the Meta login flow.</p>
-            </div>
+            <div style="padding: 40px; color: #ef4444;">No pages found. Ensure permissions were granted.</div>
             {% endfor %}
-        </div>
-
-        <div class="reviewer-note">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            <p>
-                <b>Meta Reviewer:</b> This step satisfies the <b>Asset Selection</b> requirement. 
-                The user picks a Page to connect to the messaging engine. 
-                Proceeding from here will demonstrate the active messaging use case.
-            </p>
         </div>
     </div>
 </body>

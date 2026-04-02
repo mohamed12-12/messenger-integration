@@ -150,13 +150,6 @@ def health():
     return jsonify({'status': 'ok'}), 200
 
 
-# ─── Ping/Diagnostic ──────────────────────────────────────────────────────────
-@app.route('/ping')
-def ping():
-    """Diagnostic to verify the build version on the server."""
-    return f"Nanovate Messenger Integration - Build: 2026-04-02-B", 200
-
-
 # ─── Root ─────────────────────────────────────────────────────────────────────
 @app.route('/')
 def index():
