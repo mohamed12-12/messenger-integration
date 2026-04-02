@@ -64,11 +64,21 @@ GRAPH_BASE    = f'https://graph.facebook.com/{GRAPH_VERSION}'
 # Permissions requested from the user
 SCOPES = 'pages_messaging,pages_manage_metadata,pages_read_engagement,pages_show_list'
 
-# ─── Simple In-Memory Store for Demo ──────────────────────────────────────────
-# In a real app, use Redis or a Database. For App Review demos, this is fine.
-RECENT_MESSAGES = []
-MAX_RECENT = 10
+# ─── File-Based Store for Demo (Safe for Multi-Worker Gunicorn) ────────────────
+MESSAGES_FILE = os.path.join(os.path.dirname(__file__), 'recent_messages.json')
+MAX_RECENT    = 10
 
+def load_messages():
+    if not os.path.exists(MESSAGES_FILE): return []
+    try:
+        with open(MESSAGES_FILE, 'r') as f: return json.load(f)
+    except: return []
+
+def save_message(msg):
+    msgs = load_messages()
+    msgs.insert(0, msg)
+    msgs = msgs[:MAX_RECENT]
+    with open(MESSAGES_FILE, 'w') as f: json.dump(msgs, f)
 
 # ─── HELPER: Verify Meta Webhook Signature ────────────────────────────────────
 def verify_webhook_signature(payload: bytes, signature_header: str) -> bool:
@@ -281,7 +291,8 @@ def dashboard():
         return redirect('/')
 
     # Filter messages for this specific page
-    page_messages = [m for m in RECENT_MESSAGES if m.get('page_id') == page_id]
+    all_msgs = load_messages()
+    page_messages = [m for m in all_msgs if m.get('page_id') == page_id]
 
     return render_template('dashboard.html', 
                           page_name=page_name, 
@@ -297,7 +308,8 @@ def get_recent_messages():
         return jsonify([])
     
     # Filter messages for this specific page
-    page_messages = [m for m in RECENT_MESSAGES if m.get('page_id') == page_id]
+    all_msgs = load_messages()
+    page_messages = [m for m in all_msgs if m.get('page_id') == page_id]
     return jsonify(page_messages)
 
 
@@ -381,25 +393,21 @@ def webhook_event():
                 message   = event.get('message', {})
                 text      = message.get('text', '')
 
+                if not sender_id or (not text and not message.get('attachments')):
+                    continue
+
                 logger.info(
                     "Message received – Page: %s | Sender: %s | Text: %s",
                     page_id, sender_id, text
                 )
 
                 # Store for "Live Dashboard" experience
-                RECENT_MESSAGES.insert(0, {
+                save_message({
                     'page_id': page_id,
                     'sender_id': sender_id,
-                    'text': text,
+                    'text': text or "[Attachment/Non-text]",
                     'timestamp': event.get('timestamp')
                 })
-                
-                # Keep list short
-                if len(RECENT_MESSAGES) > MAX_RECENT:
-                    RECENT_MESSAGES.pop()
-
-                # TODO: Route to your message handler / Lambda / SQS queue:
-                # handle_message(page_id, sender_id, text)
 
         return jsonify({'status': 'EVENT_RECEIVED'}), 200
 
