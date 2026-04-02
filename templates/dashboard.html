@@ -82,8 +82,11 @@
         .activity-card h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-sub); margin-bottom: 16px; }
 
         .msg-list { display: flex; flex-direction: column; gap: 12px; }
-        .msg-item { padding: 12px; background: #f9fafb; border-radius: 12px; border-left: 4px solid var(--primary); }
+        .msg-item { padding: 12px; background: #f9fafb; border-radius: 12px; border-left: 4px solid var(--primary); transition: transform 0.2s; }
+        .msg-item:hover { transform: translateX(4px); }
+        .msg-item.is-reply { background: #f0fdf4; border-left-color: #22c55e; }
         .msg-item .psid { font-size: 11px; font-family: monospace; color: var(--primary); cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .msg-item.is-reply .psid { color: #15803d; text-decoration: none; cursor: default; }
         .msg-item .text { font-size: 13px; margin-top: 4px; color: #374151; }
 
         .result-box { margin-top: 24px; padding: 16px; border-radius: 12px; display: none; }
@@ -236,8 +239,10 @@
                 const messages = await response.json();
                 if (messages.length === 0) return;
                 feed.innerHTML = messages.map(m => `
-                    <div class="msg-item">
-                        <div class="psid" onclick="copyPSID('${m.sender_id}')" title="Click to copy PSID">PSID: ${m.sender_id}</div>
+                    <div class="msg-item ${m.is_reply ? 'is-reply' : ''}">
+                        <div class="psid" ${m.is_reply ? '' : `onclick="copyPSID('${m.sender_id}')" title="Click to copy PSID"`}>
+                            ${m.is_reply ? 'NANAVATE BOT' : `PSID: ${m.sender_id}`}
+                        </div>
                         <div class="text">"${m.text}"</div>
                     </div>
                 `).join('');

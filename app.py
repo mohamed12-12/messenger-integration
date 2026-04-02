@@ -104,11 +104,18 @@ def load_messages():
     except: return []
 
 def save_message(msg):
+    messages = []
+    if os.path.exists(MESSAGES_FILE):
+        try:
+            with open(MESSAGES_FILE, 'r') as f: messages = json.load(f)
+        except: pass
+    
+    # Keep only the last 15 messages
+    messages.insert(0, msg)
+    messages = messages[:15]
+    
     try:
-        msgs = load_messages()
-        msgs.insert(0, msg)
-        msgs = msgs[:MAX_RECENT]
-        with open(MESSAGES_FILE, 'w') as f: json.dump(msgs, f)
+        with open(MESSAGES_FILE, 'w') as f: json.dump(messages, f)
         logger.info("Message saved successfully to %s", MESSAGES_FILE)
     except Exception as e:
         logger.error("CRITICAL: Failed to save message to file: %s", str(e))
@@ -470,15 +477,23 @@ def webhook_event():
                 # CHECK AUTO-RESPONSE CONFIG
                 config = load_config()
                 if config.get('auto_response'):
-                    # Retrieve the token from our persistent store
                     token = get_page_token(page_id)
                     if token:
                         logger.info("Sending AUTO-RESPONSE to %s using stored token", sender_id)
-                        send_graph_message(
-                            sender_id, 
-                            "Hello! This is a Nanovate Auto-Response. We have received your message and our AI agents are processing it now. Thank you for your patience!", 
-                            token
-                        )
+                        response_text = "hello Iam niva, how can i help? "
+                        result = send_graph_message(sender_id, response_text, token)
+                        
+                        if result and 'message_id' in result:
+                            # Log and STORE the outgoing message so it appears on the dashboard
+                            save_message({
+                                'page_id': page_id,
+                                'sender_id': 'AUTO_REPLY',
+                                'text': f"AUTO: {response_text} (ID: {result['message_id']})",
+                                'is_reply': True,
+                                'timestamp': int(time.time() * 1000)
+                            })
+                        else:
+                            logger.error("Auto-reply failed: %s", result)
                     else:
                         logger.warning("No stored token found for page %s to send auto-reply", page_id)
 
