@@ -61,7 +61,19 @@ if _missing:
 GRAPH_VERSION = 'v22.0'
 GRAPH_BASE    = f'https://graph.facebook.com/{GRAPH_VERSION}'
 
-# Permissions requested from the user
+# ─── Persistent Config for Auto-Response ──────────────────────────────────────
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config.json')
+
+def load_config():
+    if not os.path.exists(CONFIG_FILE): return {'auto_response': False}
+    try:
+        with open(CONFIG_FILE, 'r') as f: return json.load(f)
+    except: return {'auto_response': False}
+
+def save_config(cfg):
+    with open(CONFIG_FILE, 'w') as f: json.dump(cfg, f)
+
+# ─── File-Based Store for Demo (Safe for Multi-Worker Gunicorn) ────────────────
 SCOPES = 'pages_messaging,pages_manage_metadata,pages_read_engagement,pages_show_list'
 
 # ─── File-Based Store for Demo (Safe for Multi-Worker Gunicorn) ────────────────
@@ -131,11 +143,18 @@ def subscribe_page_to_webhook(page_id: str, page_access_token: str) -> bool:
         return False
 
 
-# ─── HELPER: Safe Graph API GET ───────────────────────────────────────────────
-def graph_get(path: str, params: dict) -> dict:
-    """Makes a GET request to the Facebook Graph API with a timeout."""
-    resp = requests.get(f'{GRAPH_BASE}/{path}', params=params, timeout=10)
-    resp.raise_for_status()
+# ─── HELPER: Send Graph API Message ───────────────────────────────────────────
+def send_graph_message(recipient_id: str, text: str, page_access_token: str) -> dict:
+    """Sends a message via the Meta Send API."""
+    resp = requests.post(
+        f'{GRAPH_BASE}/me/messages',
+        params={'access_token': page_access_token},
+        json={
+            'recipient': {'id': recipient_id},
+            'message': {'text': text}
+        },
+        timeout=10
+    )
     return resp.json()
 
 
@@ -317,6 +336,20 @@ def get_recent_messages():
     return jsonify(page_messages)
 
 
+# ─── Toggle Auto-Response API ──────────────────────────────────────────────────
+@app.route('/api/toggle-auto-response', methods=['POST'])
+def toggle_auto_response():
+    current_cfg = load_config()
+    current_cfg['auto_response'] = not current_cfg.get('auto_response', False)
+    save_config(current_cfg)
+    return jsonify(current_cfg)
+
+
+@app.route('/api/config')
+def get_config():
+    return jsonify(load_config())
+
+
 # ─── Send Message API ──────────────────────────────────────────────────────────
 @app.route('/send-message', methods=['POST'])
 def send_message():
@@ -328,24 +361,13 @@ def send_message():
     message_text = request.form.get('message')
     page_access_token = session.get('page_access_token')
 
-    if not recipient_id or not message_text or not page_access_token:
-        return jsonify({'error': 'Missing data'}), 400
-
     try:
-        resp = requests.post(
-            f'{GRAPH_BASE}/me/messages',
-            params={'access_token': page_access_token},
-            json={
-                'recipient': {'id': recipient_id},
-                'message': {'text': message_text}
-            },
-            timeout=10
-        )
-        result = resp.json()
-        if resp.status_code == 200:
+        page_access_token = session.get('page_access_token')
+        result = send_graph_message(recipient_id, message_text, page_access_token)
+        if 'message_id' in result:
             return jsonify({'success': True, 'result': result})
         else:
-            return jsonify({'success': False, 'error': result}), resp.status_code
+            return jsonify({'success': False, 'error': result}), 400
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -412,6 +434,22 @@ def webhook_event():
                     'text': text or "[Attachment/Non-text]",
                     'timestamp': event.get('timestamp')
                 })
+
+                # CHECK AUTO-RESPONSE CONFIG
+                config = load_config()
+                if config.get('auto_response'):
+                    # To send an auto-reply, we need the Page Access Token.
+                    # In a real app, you'd fetch this from a database. 
+                    # For this demo, we'll try to use the one in the session (if it hit the same worker)
+                    # or skip if not found. High-end apps would have a DB lookup here.
+                    token = session.get('page_access_token')
+                    if token:
+                        logger.info("Sending AUTO-RESPONSE to %s", sender_id)
+                        send_graph_message(
+                            sender_id, 
+                            "Hello! This is a Nanovate Auto-Response. We have received your message and our AI agents are processing it now. Thank you for your patience!", 
+                            token
+                        )
 
         return jsonify({'status': 'EVENT_RECEIVED'}), 200
 
