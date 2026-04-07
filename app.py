@@ -23,7 +23,7 @@ SECRET_KEY      = os.getenv('FLASK_SECRET_KEY', 'dev_secret_key_123')
 
 # Instagram Specific Configuration
 INSTAGRAM_REDIRECT_URI = os.getenv('INSTAGRAM_REDIRECT_URI')
-INSTAGRAM_SCOPES = 'instagram_basic,instagram_manage_messages,pages_messaging,pages_read_engagement'
+INSTAGRAM_SCOPES = 'instagram_basic,instagram_manage_messages,pages_messaging,pages_read_engagement,pages_show_list,pages_manage_metadata'
 
 # Flask App Initialization
 app = Flask(__name__)
@@ -249,17 +249,18 @@ def instagram_auth_callback():
         # 2. Get Facebook Pages
         pages_data = graph_get('me/accounts', {'access_token': user_access_token})
         
+        page_list_count = len(pages_data.get('data', []))
+        logger.info(f"Retrieved {page_list_count} pages for user.")
+        
         # We need to find if any page has an instagram_business_account
         instagram_account = None
         target_page_id = None
         target_page_token = None
         
-        found_pages = []
         for page in pages_data.get('data', []):
             p_id = page.get('id')
             p_name = page.get('name')
             p_token = page.get('access_token')
-            found_pages.append(p_name)
             
             logger.info(f"Checking Page: {p_name} ({p_id})")
             
@@ -295,7 +296,13 @@ def instagram_auth_callback():
                                  username=ig_info.get('username'), 
                                  account_id=ig_id)
         
-        return render_template('instagram_index.html', error='No Instagram Business Account found linked to your pages.'), 400
+        error_msg = 'No Instagram Business Account found linked to your pages.'
+        if page_list_count == 0:
+            error_msg = 'No Facebook Pages found. Make sure you selected at least one Page in the login dialog.'
+        else:
+            error_msg = f'Found {page_list_count} pages, but none have an Instagram Business Account linked. Please check your Page Settings on Facebook.'
+            
+        return render_template('instagram_index.html', error=error_msg), 400
         
     except Exception as e:
         logger.error(f"IG OAuth error: {str(e)}")
