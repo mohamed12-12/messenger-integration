@@ -254,21 +254,30 @@ def instagram_auth_callback():
         target_page_id = None
         target_page_token = None
         
+        found_pages = []
         for page in pages_data.get('data', []):
             p_id = page.get('id')
+            p_name = page.get('name')
             p_token = page.get('access_token')
-            # Check for instagram_business_account
+            found_pages.append(p_name)
+            
+            logger.info(f"Checking Page: {p_name} ({p_id})")
+            
             try:
                 page_info = graph_get(p_id, {'fields': 'instagram_business_account,name', 'access_token': p_token})
                 ig_account = page_info.get('instagram_business_account')
+                
                 if ig_account:
+                    logger.info(f"SUCCESS: Found Instagram Account {ig_account.get('id')} linked to {p_name}")
                     instagram_account = ig_account
                     target_page_id = p_id
                     target_page_token = p_token
-                    # Subscribe page to webhooks
                     subscribe_page_to_webhook(p_id, p_token)
                     break
-            except: continue
+                else:
+                    logger.warning(f"WAIT: Page '{p_name}' does not have an Instagram Business Account linked.")
+            except Exception as page_err:
+                logger.error(f"ERROR checking Page {p_name}: {str(page_err)}")
             
         if instagram_account:
             # Get Instagram username
