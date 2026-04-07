@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Connected — Nanovate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #6D68D0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 80px 48px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .check-icon {
+            width: 80px;
+            height: 80px;
+            background: #4BB543;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 32px;
+            font-size: 32px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 16px;
+        }
+
+        p {
+            color: #65676B;
+            font-size: 18px;
+            margin-bottom: 40px;
+        }
+
+        .account-box {
+            background: #F0F2F5;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+        }
+
+        .btn-primary {
+            background: #0052ff;
+            color: white;
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="check-icon">✓</div>
+        <h1>Successfully Connected!</h1>
+        <p>Nanovate is now connected to your Instagram account.</p>
+        
+        <div class="account-box">
+            <strong>Username:</strong> @{{ username }}<br>
+            <strong>ID:</strong> {{ account_id }}
+        </div>
+
+        <a href="/instagram/dashboard" class="btn-primary">Go to Dashboard</a>
+    </div>
+</body>
+</html>

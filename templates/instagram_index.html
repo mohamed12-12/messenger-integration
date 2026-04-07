@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connect Messenger — Nanovate</title>
+    <title>Connect Instagram — Nanovate</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #1877F2;
-            --bg: #6D68D0; /* Purple background from screenshot */
+            --primary: #E1306C;
+            --bg: #6D68D0;
             --text-main: #1C1E21;
             --text-sub: #65676B;
         }
@@ -72,30 +72,34 @@
             margin-right: auto;
         }
 
-        .btn-facebook {
+        .btn-instagram {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
-            background: #1877F2;
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
             color: white;
             padding: 20px 48px;
             border-radius: 14px;
             text-decoration: none;
             font-size: 20px;
             font-weight: 600;
-            transition: background 0.2s;
+            transition: opacity 0.2s;
             width: 100%;
-            max-width: 380px;
+            max-width: 420px;
         }
 
-        .btn-facebook:hover {
-            background: #166fe5;
+        .btn-instagram:hover {
+            opacity: 0.9;
         }
 
-        .btn-facebook svg {
-            width: 28px;
-            height: 28px;
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -104,18 +108,15 @@
         <div class="logo">nanovate.io</div>
         <div class="subtitle">AI Agent Platform</div>
         
-        <h1>Connect Your Messenger</h1>
-        <p>Allow Nanovate to connect your Facebook Page to your AI agent. Your agent will be able to send and receive messages automatically.</p>
-        
-        <a href="/connect" class="btn-facebook">
-            <svg viewBox="0 0 24 24" fill="white">
-                <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.936 1.444 5.56 3.7 7.29V22l3.37-1.86c.9.25 1.856.386 2.845.386 5.523 0 10-4.145 10-9.243S17.523 2 12 2z" />
-            </svg>
-            Connect with Facebook
-        </a>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
 
-        <a href="/instagram/connect" class="btn-facebook" style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); margin-top: 16px;">
-            Connect with Instagram
+        <h1>Connect Your Instagram</h1>
+        <p>Connect your Instagram Business Account to enable AI-powered messaging. To connect, your Instagram account must be linked to a Facebook Page.</p>
+        
+        <a href="/instagram/connect" class="btn-instagram">
+            Connect Instagram Business
         </a>
     </div>
 </body>

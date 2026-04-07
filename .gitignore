@@ -2,6 +2,9 @@
 .env
 *.pem
 *.key
+*.json
+!app.json  # In case there's an app manifest
+!package.json # though not needed here
 
 # Python
 __pycache__/
