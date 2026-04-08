@@ -596,8 +596,16 @@ def webhook_verify():
 @app.route('/webhook', methods=['POST'])
 @app.route('/messenger', methods=['POST'])
 def webhook_event():
-    # Basic signature validation (Optional but recommended)
-    data = request.json
+    data = request.get_json(force=True)
+
+    # RAW DEBUG — also log here so we can see if Instagram DMs arrive at this endpoint
+    try:
+        with open(WEBHOOK_DEBUG_FILE, 'w') as f:
+            json.dump({'endpoint': '/webhook', 'timestamp': time.time(), 'data': data}, f)
+    except: pass
+
+    logger.info(f"📥 /webhook hit — object='{data.get('object')}'")
+
     if data.get('object') == 'page':
         for entry in data.get('entry', []):
             page_id = entry.get('id')
@@ -606,17 +614,32 @@ def webhook_event():
                 message = event.get('message', {})
                 text = message.get('text')
                 if text:
+                    ts = event.get('timestamp', int(time.time() * 1000))
+
+                    # Save to Messenger feed
                     save_message({
                         'page_id': page_id,
                         'sender_id': sender_id,
                         'text': text,
-                        'timestamp': event.get('timestamp')
+                        'timestamp': ts
                     })
-                    # Auto-Responder Logic
+
+                    # ★ ALSO save to Instagram feed — Meta uses ONE webhook URL for ALL platforms
+                    # Instagram DMs arrive here as object=page, not object=instagram
+                    save_instagram_message({
+                        'sender_id': sender_id,
+                        'text': text,
+                        'timestamp': ts,
+                        'direction': 'inbound',
+                        'source': 'messenger_webhook'
+                    })
+                    logger.info(f"✅ Saved message from {sender_id} to BOTH feeds")
+
+                    # Auto-Responder Logic (Messenger)
                     if load_config().get('auto_response'):
                         token = get_page_token(page_id)
                         if token:
-                            reply_text = "hello Iam niva, how can i help? "
+                            reply_text = "hello I am niva, how can I help? "
                             res = send_graph_message(sender_id, reply_text, token)
                             if 'message_id' in res:
                                 save_message({
@@ -627,6 +650,24 @@ def webhook_event():
                                     'timestamp': int(time.time() * 1000)
                                 })
         return "EVENT_RECEIVED", 200
+
+    # Also handle instagram object type here (fallback)
+    if data.get('object') == 'instagram':
+        for entry in data.get('entry', []):
+            for messaging in entry.get('messaging', []):
+                sender_id = messaging.get('sender', {}).get('id')
+                text = messaging.get('message', {}).get('text')
+                if sender_id and text:
+                    save_instagram_message({
+                        'sender_id': sender_id,
+                        'text': text,
+                        'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
+                        'direction': 'inbound',
+                        'source': 'messenger_webhook_ig'
+                    })
+                    logger.info(f"✅ Saved Instagram DM from {sender_id}")
+        return "EVENT_RECEIVED", 200
+
     return "IGNORED", 200
 
 if __name__ == '__main__':
