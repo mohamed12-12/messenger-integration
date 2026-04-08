@@ -348,7 +348,8 @@ def instagram_auth_callback():
         return render_template('instagram_index.html', error=str(e)), 500
 
 @app.route('/instagram/webhook', methods=['GET'])
-def instagram_webhook_verify():
+@app.route('/instagram/webhook/<agent_id>', methods=['GET'])
+def instagram_webhook_verify(agent_id=None):
     mode = request.args.get('hub.mode')
     token = request.args.get('hub.verify_token')
     challenge = request.args.get('hub.challenge')
