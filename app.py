@@ -121,10 +121,11 @@ def load_instagram_messages():
 # ─── Graph API Helpers ───────────────────────────────────────────────────────
 def subscribe_page_to_webhook(page_id: str, page_access_token: str) -> bool:
     try:
+        # Added message_reads, message_deliveries for better event tracking
         resp = requests.post(
             f'{GRAPH_BASE}/{page_id}/subscribed_apps',
             params={
-                'subscribed_fields': 'messages,messaging_postbacks,messaging_optins',
+                'subscribed_fields': 'messages,messaging_postbacks,messaging_optins,message_reads,message_deliveries',
                 'access_token':      page_access_token,
             },
             timeout=10
@@ -438,12 +439,29 @@ def instagram_webhook_event(agent_id=None):
 def instagram_dashboard():
     ig_username = session.get('instagram_username')
     ig_id = session.get('instagram_account_id')
-    if not ig_username: return redirect(url_for('instagram_index'))
+    
+    # Fallback to .env if session is empty (helps after restarts)
+    if not ig_id:
+        ig_id = os.getenv('INSTAGRAM_ACCOUNT_ID')
+        
+    token = session.get('instagram_page_token') or get_page_token(ig_id) or os.getenv('INSTAGRAM_PAGE_TOKEN')
+    
+    # Diagnostic: Check if token is the wrong type
+    token_error = None
+    if token and token.startswith('IGAA'):
+        token_error = "CRITICAL: You are using an Instagram Basic Display token. This TOKEN DOES NOT SUPPORT MESSAGING. Please reconnect using the OAuth flow to get a proper Page Access Token (starting with EA...)."
+    elif not token:
+        token_error = "No Access Token found. Please connect your account first."
+
+    if not ig_username and not ig_id:
+        return redirect(url_for('instagram_connect'))
+        
     msgs = load_instagram_messages()
     return render_template('instagram_dashboard.html', 
-                         username=ig_username, 
+                         username=ig_username or "Unknown", 
                          account_id=ig_id,
-                         messages=msgs)
+                         messages=msgs,
+                         token_error=token_error)
 
 @app.route('/instagram/send', methods=['POST'])
 def instagram_send():
