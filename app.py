@@ -521,6 +521,34 @@ def get_webhook_debug():
     except Exception as e:
         return jsonify({'error': str(e)})
 
+@app.route('/api/check-subscription')
+def check_subscription():
+    ig_id = session.get('instagram_account_id') or os.getenv('INSTAGRAM_ACCOUNT_ID')
+    token = session.get('instagram_page_token') or get_page_token(ig_id) or os.getenv('INSTAGRAM_PAGE_TOKEN')
+    
+    if not token:
+        return jsonify({'success': False, 'error': 'No token found to check subscription.'})
+    
+    try:
+        # 1. Get the Page ID linked to this IG ID
+        # (Usually stored in session or we can find it)
+        pages_data = graph_get('me/accounts', {'access_token': token})
+        page_status = []
+        
+        for page in pages_data.get('data', []):
+            p_id = page.get('id')
+            # Check subscriptions
+            subs = graph_get(f'{p_id}/subscribed_apps', {'access_token': token})
+            page_status.append({
+                'page_name': page.get('name'),
+                'page_id': p_id,
+                'subscriptions': subs.get('data', [])
+            })
+            
+        return jsonify({'success': True, 'data': page_status})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/send-message', methods=['POST'])
 def send_message():
     recipient_id = request.form.get('recipient_id')

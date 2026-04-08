@@ -213,8 +213,9 @@
                     <span style="color: #6B7280; font-size: 14px;">Connected ID: <code>{{ account_id }}</code></span>
                 </div>
             </div>
-            <div>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                 <span class="status-badge" style="background: #D1FAE5; color: #065F46; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 13px;">● Connected</span>
+                <button onclick="checkConnection()" style="background: none; border: 1px solid #E5E7EB; border-radius: 6px; font-size: 10px; cursor: pointer; padding: 4px 8px; color: #6B7280;">Verify Webhook Subscription</button>
             </div>
         </div>
 
@@ -338,6 +339,24 @@
 
         // Initialize autoupdate
         setInterval(fetchMessages, 3000); 
+        // Diagnostic logic
+        async function checkConnection() {
+            try {
+                const res = await fetch('/api/check-subscription');
+                const data = await res.json();
+                if(data.success) {
+                    const pages = data.data.map(p => {
+                        const subs = p.subscriptions.length > 0 ? p.subscriptions[0].subscribed_fields.join(', ') : "None";
+                        return `${p.page_name}: ${subs}`;
+                    }).join('\n');
+                    alert("🔍 Webhook Status (from Meta):\n" + pages);
+                } else {
+                    alert("❌ Diagnostic Failed: " + data.error);
+                }
+            } catch (err) {
+                alert("❌ Diagnostic Network Error");
+            }
+        }
     </script>
 </body>
 </html>
