@@ -342,19 +342,29 @@
         // Diagnostic logic
         async function checkConnection() {
             try {
+                const btn = event.target;
+                btn.textContent = "Checking...";
                 const res = await fetch('/api/check-subscription');
                 const data = await res.json();
+                btn.textContent = "Verify Webhook Subscription";
+                
                 if(data.success) {
-                    const pages = data.data.map(p => {
-                        const subs = p.subscriptions.length > 0 ? p.subscriptions[0].subscribed_fields.join(', ') : "None";
-                        return `${p.page_name}: ${subs}`;
-                    }).join('\n');
-                    alert("🔍 Webhook Status (from Meta):\n" + pages);
+                    if(data.pages_found === 0) {
+                        alert("⚠️ No Facebook Pages found!\n\nYou must reconnect via the OAuth flow and select at least one Facebook Page that is linked to Instagram.");
+                        return;
+                    }
+                    const summary = data.data.map(p => {
+                        const fields = p.subscribed_fields && p.subscribed_fields.length > 0 
+                            ? p.subscribed_fields.join(', ') 
+                            : "❌ NOT SUBSCRIBED";
+                        return `📄 ${p.page_name} (${p.page_id})\nWebhook Fields: ${fields}`;
+                    }).join('\n\n');
+                    alert(`🔍 Webhook Status (from Meta):\n\n${summary}\n\nIf you see "NOT SUBSCRIBED", click OK then Reconnect via Instagram OAuth.`);
                 } else {
-                    alert("❌ Diagnostic Failed: " + data.error);
+                    alert("❌ Diagnostic Failed:\n\n" + data.error + "\n\n👉 ACTION: Go to 'Instagram Messaging' in the sidebar and click 'Connect Instagram' to start the OAuth flow.");
                 }
             } catch (err) {
-                alert("❌ Diagnostic Network Error");
+                alert("❌ Network Error during diagnostic.");
             }
         }
     </script>

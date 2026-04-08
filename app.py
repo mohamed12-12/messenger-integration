@@ -523,29 +523,52 @@ def get_webhook_debug():
 
 @app.route('/api/check-subscription')
 def check_subscription():
-    ig_id = session.get('instagram_account_id') or os.getenv('INSTAGRAM_ACCOUNT_ID')
-    token = session.get('instagram_page_token') or get_page_token(ig_id) or os.getenv('INSTAGRAM_PAGE_TOKEN')
+    # CRITICAL: me/accounts requires a USER access token, NOT a page/IG token
+    user_token = session.get('user_access_token')
     
-    if not token:
-        return jsonify({'success': False, 'error': 'No token found to check subscription.'})
+    if not user_token:
+        return jsonify({
+            'success': False, 
+            'error': 'No user session found. You MUST reconnect via the OAuth button — manually pasting an IGAA token does not work for this check.'
+        })
+    
+    # Detect wrong token type early
+    if user_token.startswith('IGAA'):
+        return jsonify({
+            'success': False,
+            'error': 'Wrong token type (IGAA = Basic Display). You must reconnect via the Instagram OAuth flow to get an EAA... Page Access Token.'
+        })
     
     try:
-        # 1. Get the Page ID linked to this IG ID
-        # (Usually stored in session or we can find it)
-        pages_data = graph_get('me/accounts', {'access_token': token})
+        # me/accounts returns all Facebook Pages the user manages
+        pages_data = graph_get('me/accounts', {'access_token': user_token})
         page_status = []
         
         for page in pages_data.get('data', []):
             p_id = page.get('id')
-            # Check subscriptions
-            subs = graph_get(f'{p_id}/subscribed_apps', {'access_token': token})
-            page_status.append({
-                'page_name': page.get('name'),
-                'page_id': p_id,
-                'subscriptions': subs.get('data', [])
-            })
+            p_token = page.get('access_token')
+            # Check what fields this page is subscribed to
+            try:
+                subs = graph_get(f'{p_id}/subscribed_apps', {'access_token': p_token})
+                subscribed_fields = []
+                for sub in subs.get('data', []):
+                    subscribed_fields = sub.get('subscribed_fields', [])
+                page_status.append({
+                    'page_name': page.get('name'),
+                    'page_id': p_id,
+                    'subscribed_fields': subscribed_fields,
+                    'is_subscribed': len(subscribed_fields) > 0
+                })
+            except Exception as sub_err:
+                page_status.append({
+                    'page_name': page.get('name'),
+                    'page_id': p_id,
+                    'subscribed_fields': [],
+                    'is_subscribed': False,
+                    'error': str(sub_err)
+                })
             
-        return jsonify({'success': True, 'data': page_status})
+        return jsonify({'success': True, 'pages_found': len(page_status), 'data': page_status})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
