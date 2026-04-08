@@ -670,6 +670,25 @@ def webhook_event():
 
     return "IGNORED", 200
 
+# ─── COMPLIANCE ENDPOINTS ─────────────────────────────────────────────────────
+@app.route('/instagram/deauth', methods=['POST'])
+def instagram_deauth():
+    """Facebook/Instagram App Deauthorization Callback"""
+    logger.warning("App deauthorized by a user.")
+    return jsonify({'success': True}), 200
+
+@app.route('/instagram/data-deletion', methods=['POST'])
+def instagram_data_deletion():
+    """Facebook/Instagram Data Deletion Request Callback"""
+    logger.warning("Data deletion requested.")
+    # In a real app, you would handle the deletion logic here
+    # and return a confirmation code/URL
+    return jsonify({
+        'url': 'https://messenger-integration.nanovate.io/instagram/data-deletion-status',
+        'confirmation_code': str(uuid.uuid4())
+    }), 200
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
