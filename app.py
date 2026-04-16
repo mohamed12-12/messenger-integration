@@ -116,6 +116,25 @@ def save_message(msg):
     except Exception as e:
         logger.error("Failed to write to messages file: %s", e)
 
+def record_messenger_text_event(page_id, sender_id, text, ts, source):
+    save_message({
+        'page_id': page_id,
+        'sender_id': sender_id,
+        'text': text,
+        'timestamp': ts,
+        'source': source
+    })
+
+    save_instagram_message({
+        'sender_id': sender_id,
+        'text': text,
+        'timestamp': ts,
+        'direction': 'inbound',
+        'source': source
+    })
+
+    logger.info("Saved %s message from %s for page %s", source, sender_id, page_id)
+
 def save_instagram_message(msg):
     messages = load_instagram_messages()
     messages.insert(0, msg)
@@ -138,11 +157,16 @@ def subscribe_page_to_webhook(page_id: str, page_access_token: str) -> bool:
         logger.error("Cannot subscribe page %s without a page access token.", page_id)
         return False
     try:
+        subscribed_fields = (
+            'messages,messaging_postbacks,messaging_optins,'
+            'message_reads,message_deliveries,message_echoes,'
+            'messaging_handovers,standby'
+        )
         # Added message_reads, message_deliveries for better event tracking
         resp = requests.post(
             f'{GRAPH_BASE}/{page_id}/subscribed_apps',
             params={
-                'subscribed_fields': 'messages,messaging_postbacks,messaging_optins,message_reads,message_deliveries',
+                'subscribed_fields': subscribed_fields,
                 'access_token':      page_access_token,
             },
             timeout=10
@@ -887,6 +911,47 @@ def webhook_event():
         for entry in data.get('entry', []):
             page_id = entry.get('id')
             last_webhook_info['entry_id'] = page_id
+            handled_entry = False
+
+            for channel_name, source_name in (
+                ('messaging', 'messenger_webhook'),
+                ('standby', 'messenger_standby')
+            ):
+                for event in entry.get(channel_name, []):
+                    handled_entry = True
+                    sender_id = event.get('sender', {}).get('id')
+                    last_webhook_info['sender_id'] = sender_id
+
+                    my_id = os.getenv('INSTAGRAM_ACCOUNT_ID')
+                    if sender_id == page_id or (my_id and sender_id == my_id):
+                        logger.info("Skipping echo from %s", sender_id)
+                        continue
+
+                    message = event.get('message', {})
+                    text = message.get('text')
+                    if not text:
+                        continue
+
+                    ts = event.get('timestamp', int(time.time() * 1000))
+                    record_messenger_text_event(page_id, sender_id, text, ts, source_name)
+
+                    if channel_name == 'messaging' and load_config().get('auto_response'):
+                        token = get_page_token(page_id)
+                        if token:
+                            reply_text = "hello I am niva, how can I help? "
+                            res = send_graph_message(sender_id, reply_text, token)
+                            if 'message_id' in res:
+                                save_message({
+                                    'page_id': page_id,
+                                    'sender_id': 'AUTO_REPLY',
+                                    'text': f"NIVA: {reply_text} (ID: {res['message_id']})",
+                                    'is_reply': True,
+                                    'timestamp': int(time.time() * 1000),
+                                    'source': 'messenger_auto_reply'
+                                })
+
+            if handled_entry:
+                continue
             for event in entry.get('messaging', []):
                 sender_id = event.get('sender', {}).get('id')
                 last_webhook_info['sender_id'] = sender_id

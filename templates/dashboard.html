@@ -217,6 +217,12 @@
             color: #374151;
         }
 
+        .msg-item .meta {
+            color: #6b7280;
+            font-size: 11px;
+            margin-top: 6px;
+        }
+
         .result-box {
             margin-top: 24px;
             padding: 16px;
@@ -453,6 +459,7 @@
                             ${m.is_reply ? 'NANAVATE BOT' : `PSID: ${m.sender_id}`}
                         </div>
                         <div class="text">"${m.text}"</div>
+                        <div class="meta">${m.source || 'messenger_webhook'}</div>
                     </div>
                 `).join('');
             } catch (err) { console.error(err); }
