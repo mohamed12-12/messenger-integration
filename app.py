@@ -107,6 +107,11 @@ def get_messages_for_page(page_id):
         return []
     return [msg for msg in load_messages() if msg.get('page_id') == page_id]
 
+def get_agent_messages():
+    messages = load_messages()
+    messages.sort(key=lambda msg: msg.get('timestamp', 0), reverse=True)
+    return messages[:25]
+
 def save_message(msg):
     messages = load_messages()
     messages.insert(0, msg)
@@ -116,9 +121,11 @@ def save_message(msg):
     except Exception as e:
         logger.error("Failed to write to messages file: %s", e)
 
-def record_messenger_text_event(page_id, sender_id, text, ts, source):
+def record_messenger_text_event(page_id, sender_id, text, ts, source, asset_type='page'):
     save_message({
         'page_id': page_id,
+        'asset_id': page_id,
+        'asset_type': asset_type,
         'sender_id': sender_id,
         'text': text,
         'timestamp': ts,
@@ -614,11 +621,21 @@ def instagram_webhook_event(agent_id=None):
                 continue
 
             # Save incoming message to UI feed
+            save_message({
+                'page_id': entry_id,
+                'asset_id': entry_id,
+                'asset_type': 'instagram',
+                'sender_id': sender_id,
+                'text': text,
+                'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
+                'source': 'instagram_webhook'
+            })
             save_instagram_message({
                 'sender_id': sender_id,
                 'text': text,
                 'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
-                'direction': 'inbound'
+                'direction': 'inbound',
+                'source': 'instagram_webhook'
             })
             logger.info(f"✅ Saved inbound message from {sender_id}: '{text}'")
 
@@ -638,7 +655,18 @@ def instagram_webhook_event(agent_id=None):
                         'sender_id': 'AUTO_REPLY',
                         'text': full_reply,
                         'timestamp': int(time.time() * 1000),
-                        'direction': 'outbound'
+                        'direction': 'outbound',
+                        'source': 'instagram_auto_reply'
+                    })
+                    save_message({
+                        'page_id': entry_id,
+                        'asset_id': entry_id,
+                        'asset_type': 'instagram',
+                        'sender_id': 'AUTO_REPLY',
+                        'text': full_reply,
+                        'timestamp': int(time.time() * 1000),
+                        'is_reply': True,
+                        'source': 'instagram_auto_reply'
                     })
                     logger.info(f"📤 Sent auto-reply to {sender_id}")
 
@@ -705,8 +733,7 @@ def instagram_send():
 
 @app.route('/api/recent-messages')
 def get_recent_messages():
-    page_id = session.get('connected_page_id')
-    return jsonify(get_messages_for_page(page_id))
+    return jsonify(get_agent_messages())
 
 @app.route('/api/recent-instagram-messages')
 def get_recent_instagram_messages():
@@ -728,7 +755,8 @@ def messenger_debug():
         'connected_page_id': page_id,
         'connected_page_name': page_name,
         'has_saved_page_token': bool(token),
-        'message_count': len(get_messages_for_page(page_id)),
+        'message_count': len(get_agent_messages()),
+        'page_message_count': len(get_messages_for_page(page_id)),
         'last_webhook_hit_timestamp': last_webhook_info['timestamp'],
         'last_object_type': last_webhook_info['object_type'],
         'last_entry_id': last_webhook_info['entry_id'],
@@ -942,10 +970,13 @@ def send_message():
     if 'message_id' in result:
         save_message({
             'page_id': page_id,
+            'asset_id': page_id,
+            'asset_type': 'page',
             'sender_id': 'MANUAL_REPLY',
             'text': f"{message_text} (ID: {result['message_id']})",
             'is_reply': True,
-            'timestamp': int(time.time() * 1000)
+            'timestamp': int(time.time() * 1000),
+            'source': 'messenger_manual_reply'
         })
         return jsonify({'success': True, 'result': result})
     return jsonify({'success': False, 'error': result}), 400

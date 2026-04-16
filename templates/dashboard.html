@@ -426,11 +426,11 @@
                 </div>
             </div>
             <div class="activity-card">
-                <h3>Incoming Events (Live)</h3>
+                <h3>Agent Events (Live)</h3>
                 <div id="msg-feed" class="msg-list">
                     <div
                         style="text-align: center; color: #9ca3af; padding: 20px; border: 1px dashed #e5e7eb; border-radius: 10px; font-size: 13px;">
-                        Waiting for messages...</div>
+                        Waiting for agent events...</div>
                 </div>
             </div>
         </div>
@@ -489,7 +489,7 @@
                 if (messages.length === 0) {
                     feed.innerHTML = `
                         <div style="text-align: center; color: #9ca3af; padding: 20px; border: 1px dashed #e5e7eb; border-radius: 10px; font-size: 13px;">
-                            No messages yet for ${connectedPageId ? `page ${connectedPageId}` : 'this page'}.
+                            No agent events yet. New Messenger or Instagram conversations connected to this app will appear here.
                         </div>
                     `;
                     return;
@@ -500,7 +500,7 @@
                             ${m.is_reply ? 'NANAVATE BOT' : `PSID: ${m.sender_id}`}
                         </div>
                         <div class="text">"${m.text}"</div>
-                        <div class="meta">${m.source || 'messenger_webhook'}</div>
+                        <div class="meta">${m.source || 'messenger_webhook'}${m.asset_type ? ` | ${m.asset_type}` : ''}${m.asset_id ? ` | ${m.asset_id}` : ''}</div>
                     </div>
                 `).join('');
             } catch (err) { console.error(err); }
@@ -517,7 +517,8 @@
                     <div class="line"><strong>Fields:</strong> ${data.subscribed_fields?.length ? data.subscribed_fields.join(', ') : 'None reported'}</div>
                     <div class="line"><strong>Primary receiver app:</strong> ${data.primary_receiver_app_id || 'Unknown'}</div>
                     <div class="line"><strong>This app is primary:</strong> ${data.current_app_is_primary === null ? 'Unknown' : (data.current_app_is_primary ? 'Yes' : 'No')}</div>
-                    <div class="line"><strong>Messages saved:</strong> ${data.message_count}</div>
+                    <div class="line"><strong>Agent events saved:</strong> ${data.message_count}</div>
+                    <div class="line"><strong>Current page events saved:</strong> ${data.page_message_count}</div>
                     <div class="line"><strong>Last webhook page:</strong> ${data.last_entry_id || 'None yet'}</div>
                     <div class="line"><strong>Matches this page:</strong> ${data.last_hit_matches_connected_page ? 'Yes' : 'No'}</div>
                     <div class="line"><strong>Last object:</strong> ${data.last_object_type || 'None yet'}</div>
