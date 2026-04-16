@@ -426,11 +426,11 @@
                 </div>
             </div>
             <div class="activity-card">
-                <h3>Agent Events (Live)</h3>
+                <h3>Current Page Events (Live)</h3>
                 <div id="msg-feed" class="msg-list">
                     <div
                         style="text-align: center; color: #9ca3af; padding: 20px; border: 1px dashed #e5e7eb; border-radius: 10px; font-size: 13px;">
-                        Waiting for agent events...</div>
+                        Waiting for page events...</div>
                 </div>
             </div>
         </div>
@@ -489,7 +489,7 @@
                 if (messages.length === 0) {
                     feed.innerHTML = `
                         <div style="text-align: center; color: #9ca3af; padding: 20px; border: 1px dashed #e5e7eb; border-radius: 10px; font-size: 13px;">
-                            No agent events yet. New Messenger or Instagram conversations connected to this app will appear here.
+                            No messages yet for ${connectedPageId ? `page ${connectedPageId}` : 'this page'}.
                         </div>
                     `;
                     return;

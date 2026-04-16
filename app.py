@@ -733,6 +733,11 @@ def instagram_send():
 
 @app.route('/api/recent-messages')
 def get_recent_messages():
+    page_id = session.get('connected_page_id')
+    return jsonify(get_messages_for_page(page_id))
+
+@app.route('/api/agent-messages')
+def get_agent_messages_api():
     return jsonify(get_agent_messages())
 
 @app.route('/api/recent-instagram-messages')
