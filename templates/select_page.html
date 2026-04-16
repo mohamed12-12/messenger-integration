@@ -36,6 +36,17 @@
 
         h1 { font-size: 28px; margin-bottom: 8px; color: var(--text-main); }
         .desc { color: var(--text-sub); margin-bottom: 40px; font-size: 16px; }
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 14px;
+            color: #b91c1c;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 24px;
+            padding: 14px 16px;
+            text-align: left;
+        }
 
         .page-list { display: flex; flex-direction: column; gap: 16px; }
 
@@ -73,6 +84,10 @@
     <div class="container">
         <h1>Asset Selection</h1>
         <p class="desc">Please select the Facebook Page you want to connect.</p>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
 
         <div class="page-list">
             {% for page in pages %}

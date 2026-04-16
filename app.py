@@ -129,6 +129,9 @@ def load_instagram_messages():
 
 # ─── Graph API Helpers ───────────────────────────────────────────────────────
 def subscribe_page_to_webhook(page_id: str, page_access_token: str) -> bool:
+    if not page_access_token:
+        logger.error("Cannot subscribe page %s without a page access token.", page_id)
+        return False
     try:
         # Added message_reads, message_deliveries for better event tracking
         resp = requests.post(
@@ -139,8 +142,20 @@ def subscribe_page_to_webhook(page_id: str, page_access_token: str) -> bool:
             },
             timeout=10
         )
-        return resp.json().get('success', False)
-    except: return False
+        payload = resp.json()
+        if resp.ok and payload.get('success', False):
+            logger.info("Subscribed page %s to webhook successfully.", page_id)
+            return True
+
+        logger.error(
+            "Webhook subscription failed for page %s. status=%s payload=%s",
+            page_id,
+            resp.status_code,
+            payload
+        )
+    except Exception:
+        logger.exception("Webhook subscription crashed for page %s.", page_id)
+    return False
 
 def send_graph_message(recipient_id: str, text: str, page_access_token: str) -> dict:
     try:
@@ -161,6 +176,24 @@ def graph_get(path: str, params: dict) -> dict:
     resp = requests.get(f'{GRAPH_BASE}/{path}', params=params, timeout=10)
     resp.raise_for_status()
     return resp.json()
+
+def graph_get_all_items(path: str, params: dict) -> list:
+    items = []
+    next_url = f'{GRAPH_BASE}/{path}'
+    next_params = dict(params)
+
+    while next_url:
+        resp = requests.get(next_url, params=next_params, timeout=10)
+        resp.raise_for_status()
+        payload = resp.json()
+        items.extend(payload.get('data', []))
+        next_url = payload.get('paging', {}).get('next')
+        next_params = None
+
+    return items
+
+def get_user_pages(user_access_token: str) -> list:
+    return graph_get_all_items('me/accounts', {'access_token': user_access_token})
 
 # ─── Agent & AI Helpers ──────────────────────────────────────────────────────
 def get_chat_agent_by_id(agent_id: str):
@@ -208,6 +241,8 @@ def connect():
         f"&redirect_uri={REDIRECT_URI}"
         f"&state={state}"
         f"&scope={SCOPES}"
+        "&response_type=code"
+        "&auth_type=rerequest"
     )
     return redirect(fb_url)
 
@@ -215,8 +250,12 @@ def connect():
 def auth_callback():
     code = request.args.get('code')
     state = request.args.get('state')
+    error = request.args.get('error')
+    error_description = request.args.get('error_description')
     if state != session.get('oauth_state'):
         return render_template('index.html', error='CSRF Error. Please try again.'), 400
+    if error:
+        return render_template('index.html', error=error_description or error), 400
     try:
         token_data = graph_get('oauth/access_token', {
             'client_id':     META_APP_ID,
@@ -225,9 +264,24 @@ def auth_callback():
             'code':          code
         })
         session['user_access_token'] = token_data.get('access_token')
-        pages_data = graph_get('me/accounts', {'access_token': session['user_access_token']})
-        return render_template('select_page.html', pages=pages_data.get('data', []))
+        pages = get_user_pages(session['user_access_token'])
+        logger.info("Messenger OAuth retrieved %s pages from Meta.", len(pages))
+
+        page_options = [
+            {'id': page.get('id'), 'name': page.get('name')}
+            for page in pages
+            if page.get('id') and page.get('name')
+        ]
+        if not page_options:
+            return render_template(
+                'select_page.html',
+                pages=[],
+                error='No Facebook Pages were returned. Reconnect and make sure the required Pages are selected in the Facebook dialog.'
+            ), 400
+
+        return render_template('select_page.html', pages=page_options)
     except Exception as e:
+        logger.exception("Messenger auth callback failed.")
         return render_template('index.html', error=str(e)), 500
 
 @app.route('/connect-page/<page_id>')
@@ -235,19 +289,47 @@ def connect_page(page_id):
     user_token = session.get('user_access_token')
     if not user_token: return redirect('/')
     try:
-        page_data = graph_get(page_id, {'fields': 'access_token,name', 'access_token': user_token})
+        pages = get_user_pages(user_token)
+        page_data = next((page for page in pages if page.get('id') == page_id), None)
+        page_options = [
+            {'id': page.get('id'), 'name': page.get('name')}
+            for page in pages
+            if page.get('id') and page.get('name')
+        ]
+
+        if not page_data:
+            return render_template(
+                'select_page.html',
+                pages=page_options,
+                error='The selected page was not returned by Meta. Reconnect and make sure that page is selected in the Facebook dialog.'
+            ), 400
+
         page_token = page_data.get('access_token')
+        page_name = page_data.get('name') or page_id
+        if not page_token:
+            logger.error("Meta returned page %s without an access token. payload=%s", page_id, page_data)
+            return render_template(
+                'select_page.html',
+                pages=page_options,
+                error=f"Meta did not return a page access token for '{page_name}'. Reconnect and verify the granted Page permissions."
+            ), 502
+
         if subscribe_page_to_webhook(page_id, page_token):
             session['connected_page_id'] = page_id
-            session['connected_page_name'] = page_data.get('name')
+            session['connected_page_name'] = page_name
             session['page_access_token'] = page_token
             try:
                 save_page_token(page_id, page_token)
             except: pass
             return redirect(url_for('dashboard'))
-        return render_template('index.html', error='Subscription failed'), 500
+        return render_template(
+            'select_page.html',
+            pages=page_options,
+            error=f"Meta rejected the webhook subscription for '{page_name}'. Check that this page is granted to the app, then reconnect and try again."
+        ), 502
     except Exception as e:
-        return render_template('index.html', error=str(e)), 500
+        logger.exception("Connecting page %s failed.", page_id)
+        return render_template('select_page.html', pages=[], error=str(e)), 500
 
 @app.route('/dashboard')
 def dashboard():

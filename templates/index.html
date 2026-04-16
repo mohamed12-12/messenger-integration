@@ -72,6 +72,19 @@
             margin-right: auto;
         }
 
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 14px;
+            color: #b91c1c;
+            font-size: 15px;
+            line-height: 1.5;
+            margin: 0 auto 24px;
+            max-width: 520px;
+            padding: 16px 18px;
+            text-align: left;
+        }
+
         .btn-facebook {
             display: inline-flex;
             align-items: center;
@@ -106,6 +119,10 @@
         
         <h1>Connect Your Messenger</h1>
         <p>Allow Nanovate to connect your Facebook Page to your AI agent. Your agent will be able to send and receive messages automatically.</p>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
         
         <a href="/connect" class="btn-facebook">
             <svg viewBox="0 0 24 24" fill="white">
