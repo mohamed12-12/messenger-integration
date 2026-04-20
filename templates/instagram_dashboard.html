@@ -199,7 +199,7 @@
         <div class="logo">nanovate.io</div>
         <nav>
             <a href="/" class="nav-item">Facebook Messenger</a>
-            <a href="/instagram/dashboard" class="nav-item active">Instagram Messaging</a>
+            <a href="/instagram/dashboard/{{ account_id }}" class="nav-item active">Instagram Messaging</a>
         </nav>
     </div>
 
@@ -247,6 +247,7 @@
                 <div class="card">
                     <h2 style="font-size: 18px; margin-bottom: 20px;">Send Live Message from App UI</h2>
                     <form id="msgForm">
+                        <input type="hidden" id="page_id" name="page_id" value="{{ account_id }}">
                         <div class="form-group">
                             <label class="label">Recipient PSID</label>
                             <input type="text" id="recipient_psid" name="recipient_psid" placeholder="Paste IG PSID here..." required>
@@ -293,11 +294,14 @@
     </div>
 
     <script>
+        const connectedInstagramId = {{ account_id|tojson }};
+
         // Send Message logic
         document.getElementById('msgForm').onsubmit = async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const statusDiv = document.getElementById('responseMsg');
+            formData.set('page_id', connectedInstagramId || '');
             
             statusDiv.innerHTML = "Processing outbound message...";
             statusDiv.style.color = "#4B5563";
@@ -331,7 +335,7 @@
                 sync.innerHTML = "Syncing...";
                 
                 // Fetch debug info
-                const debugRes = await fetch('/api/instagram-debug');
+                const debugRes = await fetch(`/api/instagram-debug?page_id=${encodeURIComponent(connectedInstagramId || '')}`);
                 const debugData = await debugRes.json();
                 
                 if (debugData.last_webhook_hit_timestamp) {
@@ -340,7 +344,7 @@
                     document.getElementById('last-hit-type').textContent = debugData.last_object_type || 'N/A';
                 }
 
-                const res = await fetch('/api/recent-instagram-messages');
+                const res = await fetch(`/api/recent-instagram-messages?page_id=${encodeURIComponent(connectedInstagramId || '')}`);
                 const data = await res.json();
                 const feed = document.getElementById('msgFeed');
                 

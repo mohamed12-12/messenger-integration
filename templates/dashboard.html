@@ -385,6 +385,7 @@
                 <p class="desc">Send a manual response to a customer on Facebook Messenger.</p>
 
                 <form id="sendForm">
+                    <input type="hidden" id="page_id" name="page_id" value="{{ page_id }}">
                     <div class="form-group">
                         <label for="recipient_id">Recipient PSID</label>
                         <input type="text" id="recipient_id" name="recipient_id" placeholder="Copy PSID from the feed"
@@ -484,7 +485,7 @@
 
         async function updateFeed() {
             try {
-                const response = await fetch('/api/recent-messages');
+                const response = await fetch(`/api/recent-messages?page_id=${encodeURIComponent(connectedPageId || '')}`);
                 const messages = await response.json();
                 if (messages.length === 0) {
                     feed.innerHTML = `
@@ -508,7 +509,7 @@
 
         async function updateDebug() {
             try {
-                const response = await fetch('/api/messenger-debug');
+                const response = await fetch(`/api/messenger-debug?page_id=${encodeURIComponent(connectedPageId || '')}`);
                 const data = await response.json();
                 debugBox.innerHTML = `
                     <div class="line"><strong>Page:</strong> ${data.connected_page_name || 'Unknown'}${data.connected_page_id ? ` (${data.connected_page_id})` : ''}</div>
@@ -543,7 +544,7 @@
                 return;
             }
 
-            const response = await fetch(`/api/thread-owner?recipient_id=${encodeURIComponent(recipientId)}`);
+            const response = await fetch(`/api/thread-owner?recipient_id=${encodeURIComponent(recipientId)}&page_id=${encodeURIComponent(connectedPageId || '')}`);
             const data = await response.json();
             if (!data.success) {
                 showResult(false, `<strong>Error:</strong> ${data.error}`);
@@ -563,7 +564,7 @@
             const response = await fetch(`/api/thread-control/${action}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ recipient_id: recipientId })
+                body: JSON.stringify({ recipient_id: recipientId, page_id: connectedPageId })
             });
             const data = await response.json();
             if (!data.success) {
@@ -590,6 +591,7 @@
             btn.disabled = true;
             btn.innerHTML = 'Sending...';
             const formData = new FormData(form);
+            formData.set('page_id', connectedPageId || '');
             try {
                 const response = await fetch('/send-message', { method: 'POST', body: formData });
                 const data = await response.json();

@@ -43,11 +43,12 @@ GRAPH_BASE    = f'https://graph.facebook.com/{GRAPH_VERSION}'
 SCOPES = 'pages_messaging,pages_manage_metadata,pages_read_engagement,pages_show_list'
 
 # ─── Persistent Storage Files ────────────────────────────────────────────────
-MESSAGES_FILE = os.path.join(os.path.dirname(__file__), 'recent_messages.json')
-CONFIG_FILE   = os.path.join(os.path.dirname(__file__), 'config.json')
-TOKEN_FILE    = os.path.join(os.path.dirname(__file__), 'page_tokens.json')
-INSTAGRAM_MESSAGES_FILE = os.path.join(os.path.dirname(__file__), 'instagram_messages.json')
-WEBHOOK_DEBUG_FILE = os.path.join(os.path.dirname(__file__), 'webhook_debug.json')
+BASE_DIR = os.path.dirname(__file__)
+LEGACY_MESSAGES_FILE = os.path.join(BASE_DIR, 'recent_messages.json')
+CONFIG_FILE = os.path.join(BASE_DIR, 'config.json')
+TOKEN_FILE = os.path.join(BASE_DIR, 'page_tokens.json')
+LEGACY_INSTAGRAM_MESSAGES_FILE = os.path.join(BASE_DIR, 'instagram_messages.json')
+WEBHOOK_DEBUG_FILE = os.path.join(BASE_DIR, 'webhook_debug.json')
 
 # In-memory storage for last 20 instagram messages if file doesn't exist
 instagram_messages = []
@@ -76,6 +77,61 @@ def load_config():
 def save_config(cfg):
     with open(CONFIG_FILE, 'w') as f: json.dump(cfg, f)
 
+def save_connected_page_context(page_id, page_name):
+    cfg = load_config()
+    pages = cfg.setdefault('pages', {})
+    pages[str(page_id)] = {'name': page_name}
+    save_config(cfg)
+
+def get_connected_page_context():
+    return session.get('connected_page_id'), session.get('connected_page_name')
+
+def save_instagram_account_context(ig_account_id, username):
+    cfg = load_config()
+    accounts = cfg.setdefault('instagram_accounts', {})
+    accounts[str(ig_account_id)] = {'username': username}
+    save_config(cfg)
+
+def get_saved_page_name(page_id):
+    if not page_id:
+        return None
+    if session.get('connected_page_id') == page_id and session.get('connected_page_name'):
+        return session.get('connected_page_name')
+    cfg = load_config()
+    return ((cfg.get('pages') or {}).get(str(page_id)) or {}).get('name')
+
+def get_saved_instagram_username(ig_account_id):
+    if not ig_account_id:
+        return None
+    if session.get('instagram_account_id') == ig_account_id and session.get('instagram_username'):
+        return session.get('instagram_username')
+    cfg = load_config()
+    return ((cfg.get('instagram_accounts') or {}).get(str(ig_account_id)) or {}).get('username')
+
+def build_messages_file(page_id):
+    return os.path.join(BASE_DIR, f'messages_{page_id}.json')
+
+def build_instagram_messages_file(ig_account_id):
+    return os.path.join(BASE_DIR, f'instagram_messages_{ig_account_id}.json')
+
+def load_json_list(path):
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def save_json_list(path, items):
+    with open(path, 'w') as f:
+        json.dump(items, f)
+
+def iter_storage_files(prefix):
+    for filename in os.listdir(BASE_DIR):
+        if filename.startswith(prefix) and filename.endswith('.json'):
+            yield os.path.join(BASE_DIR, filename)
+
 def save_page_token(page_id, token):
     tokens = {}
     if os.path.exists(TOKEN_FILE):
@@ -96,28 +152,41 @@ def get_page_token(page_id):
             return tokens.get(page_id)
     except: return None
 
-def load_messages():
-    if not os.path.exists(MESSAGES_FILE): return []
-    try:
-        with open(MESSAGES_FILE, 'r') as f: return json.load(f)
-    except: return []
+def load_messages(page_id=None):
+    if page_id:
+        return load_json_list(build_messages_file(page_id))
+
+    messages = []
+    for path in iter_storage_files('messages_'):
+        messages.extend(load_json_list(path))
+
+    if not messages and os.path.exists(LEGACY_MESSAGES_FILE):
+        messages = load_json_list(LEGACY_MESSAGES_FILE)
+
+    return messages
 
 def get_messages_for_page(page_id):
     if not page_id:
         return []
-    return [msg for msg in load_messages() if msg.get('page_id') == page_id]
+    messages = load_messages(page_id)
+    messages.sort(key=lambda msg: msg.get('timestamp', 0), reverse=True)
+    return messages[:15]
 
 def get_agent_messages():
     messages = load_messages()
     messages.sort(key=lambda msg: msg.get('timestamp', 0), reverse=True)
     return messages[:25]
 
-def save_message(msg):
-    messages = load_messages()
+def save_message(msg, page_id=None):
+    page_id = page_id or msg.get('page_id')
+    if not page_id:
+        logger.warning("Skipping message save because page_id is missing: %s", msg)
+        return
+    messages = load_messages(page_id)
     messages.insert(0, msg)
     messages = messages[:15] # Keep last 15
     try:
-        with open(MESSAGES_FILE, 'w') as f: json.dump(messages, f)
+        save_json_list(build_messages_file(page_id), messages)
     except Exception as e:
         logger.error("Failed to write to messages file: %s", e)
 
@@ -130,33 +199,35 @@ def record_messenger_text_event(page_id, sender_id, text, ts, source, asset_type
         'text': text,
         'timestamp': ts,
         'source': source
-    })
-
-    save_instagram_message({
-        'sender_id': sender_id,
-        'text': text,
-        'timestamp': ts,
-        'direction': 'inbound',
-        'source': source
-    })
+    }, page_id=page_id)
 
     logger.info("Saved %s message from %s for page %s", source, sender_id, page_id)
 
-def save_instagram_message(msg):
-    messages = load_instagram_messages()
+def save_instagram_message(msg, ig_account_id=None):
+    ig_account_id = ig_account_id or msg.get('page_id') or msg.get('asset_id')
+    if not ig_account_id:
+        logger.warning("Skipping Instagram message save because page/account id is missing: %s", msg)
+        return
+    messages = load_instagram_messages(ig_account_id)
     messages.insert(0, msg)
     messages = messages[:20] # Keep last 20
     try:
-        with open(INSTAGRAM_MESSAGES_FILE, 'w') as f: json.dump(messages, f)
+        save_json_list(build_instagram_messages_file(ig_account_id), messages)
     except Exception as e:
         logger.error("Failed to write to instagram messages file: %s", e)
 
-def load_instagram_messages():
-    if not os.path.exists(INSTAGRAM_MESSAGES_FILE): return []
-    try:
-        with open(INSTAGRAM_MESSAGES_FILE, 'r') as f: 
-            return json.load(f)
-    except: return []
+def load_instagram_messages(ig_account_id=None):
+    if ig_account_id:
+        return load_json_list(build_instagram_messages_file(ig_account_id))
+
+    messages = []
+    for path in iter_storage_files('instagram_messages_'):
+        messages.extend(load_json_list(path))
+
+    if not messages and os.path.exists(LEGACY_INSTAGRAM_MESSAGES_FILE):
+        messages = load_json_list(LEGACY_INSTAGRAM_MESSAGES_FILE)
+
+    return messages
 
 # ─── Graph API Helpers ───────────────────────────────────────────────────────
 def subscribe_page_to_webhook(page_id: str, page_access_token: str) -> bool:
@@ -276,9 +347,17 @@ def graph_get_all_items(path: str, params: dict) -> list:
 def get_user_pages(user_access_token: str) -> list:
     return graph_get_all_items('me/accounts', {'access_token': user_access_token})
 
-def get_connected_page_token():
-    page_id = session.get('connected_page_id')
-    return session.get('page_access_token') or (get_page_token(page_id) if page_id else None)
+def get_connected_page_token(page_id=None):
+    page_id = page_id or session.get('connected_page_id')
+    if page_id and session.get('connected_page_id') == page_id and session.get('page_access_token'):
+        return session.get('page_access_token')
+    return get_page_token(page_id) if page_id else None
+
+def get_instagram_page_token(ig_account_id=None):
+    ig_account_id = ig_account_id or session.get('instagram_account_id')
+    if ig_account_id and session.get('instagram_account_id') == ig_account_id and session.get('instagram_page_token'):
+        return session.get('instagram_page_token')
+    return get_page_token(ig_account_id) if ig_account_id else None
 
 # ─── Agent & AI Helpers ──────────────────────────────────────────────────────
 def get_chat_agent_by_id(agent_id: str):
@@ -410,10 +489,11 @@ def connect_page(page_id):
             session['connected_page_id'] = page_id
             session['connected_page_name'] = page_name
             session['page_access_token'] = page_token
+            save_connected_page_context(page_id, page_name)
             try:
                 save_page_token(page_id, page_token)
             except: pass
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('dashboard_page', page_id=page_id))
         return render_template(
             'select_page.html',
             pages=page_options,
@@ -425,9 +505,16 @@ def connect_page(page_id):
 
 @app.route('/dashboard')
 def dashboard():
-    page_name = session.get('connected_page_name')
-    page_id = session.get('connected_page_id')
-    if not page_name: return redirect('/')
+    page_id, _ = get_connected_page_context()
+    if not page_id:
+        return redirect('/')
+    return redirect(url_for('dashboard_page', page_id=page_id))
+
+@app.route('/dashboard/<page_id>')
+def dashboard_page(page_id):
+    page_name = get_saved_page_name(page_id) or page_id
+    session['connected_page_id'] = page_id
+    session['connected_page_name'] = page_name
     return render_template('dashboard.html', page_name=page_name, page_id=page_id)
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -516,17 +603,17 @@ def instagram_auth_callback():
             # Get Instagram username
             ig_id = instagram_account.get('id')
             ig_info = graph_get(ig_id, {'fields': 'username', 'access_token': target_page_token})
+            username = ig_info.get('username')
             
             session['instagram_account_id'] = ig_id
-            session['instagram_username'] = ig_info.get('username')
+            session['instagram_username'] = username
             session['instagram_page_token'] = target_page_token
             
             # Save to env logic would normally go here, but for this app we'll use session/token file
             save_page_token(ig_id, target_page_token) # reuse for IG
-            
-            return render_template('instagram_success.html', 
-                                 username=ig_info.get('username'), 
-                                 account_id=ig_id)
+            save_instagram_account_context(ig_id, username)
+
+            return redirect(url_for('instagram_dashboard_page', ig_account_id=ig_id))
         
         error_msg = 'No Instagram Business Account found linked to your pages.'
         if page_list_count == 0:
@@ -621,22 +708,16 @@ def instagram_webhook_event(agent_id=None):
                 continue
 
             # Save incoming message to UI feed
-            save_message({
+            save_instagram_message({
                 'page_id': entry_id,
                 'asset_id': entry_id,
                 'asset_type': 'instagram',
                 'sender_id': sender_id,
                 'text': text,
                 'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
-                'source': 'instagram_webhook'
-            })
-            save_instagram_message({
-                'sender_id': sender_id,
-                'text': text,
-                'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
                 'direction': 'inbound',
                 'source': 'instagram_webhook'
-            })
+            }, ig_account_id=entry_id)
             logger.info(f"✅ Saved inbound message from {sender_id}: '{text}'")
 
             # AI Auto-Responder (only when agent_id route is used)
@@ -652,51 +733,44 @@ def instagram_webhook_event(agent_id=None):
                     full_reply = f"{disclosure}{response_text}"
                     send_instagram_message(sender_id, full_reply, token)
                     save_instagram_message({
-                        'sender_id': 'AUTO_REPLY',
-                        'text': full_reply,
-                        'timestamp': int(time.time() * 1000),
-                        'direction': 'outbound',
-                        'source': 'instagram_auto_reply'
-                    })
-                    save_message({
                         'page_id': entry_id,
                         'asset_id': entry_id,
                         'asset_type': 'instagram',
                         'sender_id': 'AUTO_REPLY',
                         'text': full_reply,
                         'timestamp': int(time.time() * 1000),
-                        'is_reply': True,
+                        'direction': 'outbound',
                         'source': 'instagram_auto_reply'
-                    })
+                    }, ig_account_id=entry_id)
                     logger.info(f"📤 Sent auto-reply to {sender_id}")
 
     return "EVENT_RECEIVED", 200
 
 @app.route('/instagram/dashboard')
 def instagram_dashboard():
-    ig_username = session.get('instagram_username')
     ig_id = session.get('instagram_account_id')
-    
-    # Fallback to .env if session is empty (helps after restarts)
     if not ig_id:
-        ig_id = os.getenv('INSTAGRAM_ACCOUNT_ID')
-        
-    token = session.get('instagram_page_token') or get_page_token(ig_id) or os.getenv('INSTAGRAM_PAGE_TOKEN')
-    
-    # Diagnostic: Check if token is the wrong type
+        return redirect(url_for('instagram_connect'))
+    return redirect(url_for('instagram_dashboard_page', ig_account_id=ig_id))
+
+@app.route('/instagram/dashboard/<ig_account_id>')
+def instagram_dashboard_page(ig_account_id):
+    ig_username = get_saved_instagram_username(ig_account_id) or "Unknown"
+    token = get_instagram_page_token(ig_account_id)
+
     token_error = None
     if token and token.startswith('IGAA'):
         token_error = "CRITICAL: You are using an Instagram Basic Display token. This TOKEN DOES NOT SUPPORT MESSAGING. Please reconnect using the OAuth flow to get a proper Page Access Token (starting with EA...)."
     elif not token:
         token_error = "No Access Token found. Please connect your account first."
 
-    if not ig_username and not ig_id:
-        return redirect(url_for('instagram_connect'))
-        
-    msgs = load_instagram_messages()
-    return render_template('instagram_dashboard.html', 
-                         username=ig_username or "Unknown", 
-                         account_id=ig_id,
+    session['instagram_account_id'] = ig_account_id
+    session['instagram_username'] = ig_username
+
+    msgs = load_instagram_messages(ig_account_id)
+    return render_template('instagram_dashboard.html',
+                         username=ig_username,
+                         account_id=ig_account_id,
                          messages=msgs,
                          token_error=token_error,
                          last_hit=last_webhook_info)
@@ -705,12 +779,8 @@ def instagram_dashboard():
 def instagram_send():
     recipient_psid = request.form.get('recipient_psid')
     message_text = request.form.get('message')
-    token = session.get('instagram_page_token')
-    
-    if not token:
-        # try to get from token file if not in session
-        ig_id = session.get('instagram_account_id')
-        token = get_page_token(ig_id)
+    ig_id = request.form.get('page_id') or session.get('instagram_account_id')
+    token = get_instagram_page_token(ig_id)
 
     if not token:
         return jsonify({'success': False, 'error': 'No page token found'}), 401
@@ -722,18 +792,21 @@ def instagram_send():
     result = send_graph_message(recipient_psid, full_message, token)
     
     if 'message_id' in result:
-        # Save outgoing message too?
         save_instagram_message({
+            'page_id': ig_id,
+            'asset_id': ig_id,
             'sender_id': 'YOU',
             'text': full_message,
-            'timestamp': int(time.time() * 1000)
-        })
+            'timestamp': int(time.time() * 1000),
+            'direction': 'outbound',
+            'source': 'instagram_manual_reply'
+        }, ig_account_id=ig_id)
         return jsonify({'success': True, 'result': result})
     return jsonify({'success': False, 'error': result}), 400
 
 @app.route('/api/recent-messages')
 def get_recent_messages():
-    page_id = session.get('connected_page_id')
+    page_id = request.args.get('page_id') or session.get('connected_page_id')
     return jsonify(get_messages_for_page(page_id))
 
 @app.route('/api/agent-messages')
@@ -742,8 +815,8 @@ def get_agent_messages_api():
 
 @app.route('/api/recent-instagram-messages')
 def get_recent_instagram_messages():
-    # Fresh load on every request as requested
-    return jsonify(load_instagram_messages())
+    ig_account_id = request.args.get('page_id') or session.get('instagram_account_id')
+    return jsonify(load_instagram_messages(ig_account_id))
 
 @app.route('/api/webhook-last-hit')
 def get_webhook_last_hit():
@@ -751,10 +824,10 @@ def get_webhook_last_hit():
 
 @app.route('/api/messenger-debug')
 def messenger_debug():
-    page_id = session.get('connected_page_id')
-    page_name = session.get('connected_page_name')
+    page_id = request.args.get('page_id') or session.get('connected_page_id')
+    page_name = get_saved_page_name(page_id)
     user_token = session.get('user_access_token')
-    token = get_connected_page_token()
+    token = get_connected_page_token(page_id)
 
     debug_info = {
         'connected_page_id': page_id,
@@ -775,13 +848,15 @@ def messenger_debug():
         'subscription_error': None
     }
 
-    if not page_id or not user_token:
+    if not page_id:
         return jsonify(debug_info)
 
     try:
-        pages = get_user_pages(user_token)
-        page_data = next((page for page in pages if page.get('id') == page_id), None)
-        page_token = (page_data or {}).get('access_token') or token
+        page_token = token
+        if user_token and not page_token:
+            pages = get_user_pages(user_token)
+            page_data = next((page for page in pages if page.get('id') == page_id), None)
+            page_token = (page_data or {}).get('access_token')
 
         if page_token:
             subs = graph_get(f'{page_id}/subscribed_apps', {'access_token': page_token})
@@ -814,7 +889,8 @@ def messenger_debug():
 @app.route('/api/thread-owner')
 def get_thread_owner():
     recipient_id = request.args.get('recipient_id')
-    token = get_connected_page_token()
+    page_id = request.args.get('page_id') or session.get('connected_page_id')
+    token = get_connected_page_token(page_id)
 
     if not recipient_id:
         return jsonify({'success': False, 'error': 'recipient_id is required'}), 400
@@ -845,7 +921,8 @@ def thread_control(action):
     recipient_id = data.get('recipient_id')
     metadata = data.get('metadata') or f'{action} by messenger-integration dashboard'
     target_app_id = data.get('target_app_id')
-    token = get_connected_page_token()
+    page_id = data.get('page_id') or session.get('connected_page_id')
+    token = get_connected_page_token(page_id)
 
     if action not in {'request', 'take', 'pass'}:
         return jsonify({'success': False, 'error': 'Unsupported thread control action'}), 400
@@ -880,11 +957,13 @@ def thread_control(action):
 
 @app.route('/api/instagram-debug')
 def instagram_debug():
-    msgs = load_instagram_messages()
+    ig_account_id = request.args.get('page_id') or session.get('instagram_account_id')
+    msgs = load_instagram_messages(ig_account_id)
     return jsonify({
         'last_webhook_hit_timestamp': last_webhook_info['timestamp'],
         'last_object_type': last_webhook_info['object_type'],
         'last_entry_id': last_webhook_info['entry_id'],
+        'last_hit_matches_current_account': bool(ig_account_id and last_webhook_info['entry_id'] == ig_account_id),
         'message_count': len(msgs),
         'last_3_raw_messages': msgs[:3]
     })
@@ -965,8 +1044,8 @@ def check_subscription():
 def send_message():
     recipient_id = request.form.get('recipient_id')
     message_text = request.form.get('message')
-    token = get_connected_page_token()
-    page_id = session.get('connected_page_id')
+    page_id = request.form.get('page_id') or session.get('connected_page_id')
+    token = get_connected_page_token(page_id)
 
     if not token:
         return jsonify({'success': False, 'error': 'No connected page token found. Please reconnect the page.'}), 401
@@ -982,7 +1061,7 @@ def send_message():
             'is_reply': True,
             'timestamp': int(time.time() * 1000),
             'source': 'messenger_manual_reply'
-        })
+        }, page_id=page_id)
         return jsonify({'success': True, 'result': result})
     return jsonify({'success': False, 'error': result}), 400
 
@@ -1079,78 +1158,39 @@ def webhook_event():
                             if 'message_id' in res:
                                 save_message({
                                     'page_id': page_id,
+                                    'asset_id': page_id,
+                                    'asset_type': 'page',
                                     'sender_id': 'AUTO_REPLY',
                                     'text': f"NIVA: {reply_text} (ID: {res['message_id']})",
                                     'is_reply': True,
                                     'timestamp': int(time.time() * 1000),
                                     'source': 'messenger_auto_reply'
-                                })
+                                }, page_id=page_id)
 
             if handled_entry:
                 continue
-            for event in entry.get('messaging', []):
-                sender_id = event.get('sender', {}).get('id')
-                last_webhook_info['sender_id'] = sender_id
-                
-                # CRITICAL META FIX: Ignore echoes
-                my_id = os.getenv('INSTAGRAM_ACCOUNT_ID')
-                if sender_id == page_id or (my_id and sender_id == my_id):
-                    logger.info(f"⏭️ /webhook: Skipping echo from {sender_id}")
-                    continue
-
-                message = event.get('message', {})
-                text = message.get('text')
-                if text:
-                    ts = event.get('timestamp', int(time.time() * 1000))
-
-                    # Save to Messenger feed
-                    save_message({
-                        'page_id': page_id,
-                        'sender_id': sender_id,
-                        'text': text,
-                        'timestamp': ts
-                    })
-
-                    # ★ ALSO save to Instagram feed
-                    save_instagram_message({
-                        'sender_id': sender_id,
-                        'text': text,
-                        'timestamp': ts,
-                        'direction': 'inbound',
-                        'source': 'messenger_webhook'
-                    })
-                    logger.info(f"✅ Saved message from {sender_id} to BOTH feeds")
-
-                    # Auto-Responder Logic (Messenger)
-                    if load_config().get('auto_response'):
-                        token = get_page_token(page_id)
-                        if token:
-                            reply_text = "hello I am niva, how can I help? "
-                            res = send_graph_message(sender_id, reply_text, token)
-                            if 'message_id' in res:
-                                save_message({
-                                    'page_id': page_id,
-                                    'sender_id': 'AUTO_REPLY',
-                                    'text': f"NIVA: {reply_text} (ID: {res['message_id']})",
-                                    'is_reply': True,
-                                    'timestamp': int(time.time() * 1000)
-                                })
         return "EVENT_RECEIVED", 200
 
     # Also handle instagram object type here (fallback)
     if data.get('object') == 'instagram':
         for entry in data.get('entry', []):
+            entry_id = entry.get('id')
+            last_webhook_info['entry_id'] = entry_id
             for messaging in entry.get('messaging', []):
                 sender_id = messaging.get('sender', {}).get('id')
+                last_webhook_info['sender_id'] = sender_id
                 text = messaging.get('message', {}).get('text')
                 if sender_id and text:
                     save_instagram_message({
+                        'page_id': entry_id,
+                        'asset_id': entry_id,
+                        'asset_type': 'instagram',
                         'sender_id': sender_id,
                         'text': text,
                         'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
                         'direction': 'inbound',
                         'source': 'messenger_webhook_ig'
-                    })
+                    }, ig_account_id=entry_id)
                     logger.info(f"✅ Saved Instagram DM from {sender_id}")
         return "EVENT_RECEIVED", 200
 
