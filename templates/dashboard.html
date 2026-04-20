@@ -523,8 +523,12 @@
                     <div class="line"><strong>Last webhook page:</strong> ${data.last_entry_id || 'None yet'}</div>
                     <div class="line"><strong>Matches this page:</strong> ${data.last_hit_matches_connected_page ? 'Yes' : 'No'}</div>
                     <div class="line"><strong>Last object:</strong> ${data.last_object_type || 'None yet'}</div>
+                    <div class="line"><strong>Page webhook seen:</strong> ${data.page_has_webhook_hit ? 'Yes' : 'No'}</div>
+                    <div class="line"><strong>Page last webhook time:</strong> ${data.page_last_webhook_timestamp ? new Date(data.page_last_webhook_timestamp * 1000).toLocaleString() : 'None yet'}</div>
+                    <div class="line"><strong>Page last webhook endpoint:</strong> ${data.page_last_webhook_endpoint || 'None yet'}</div>
+                    <div class="line"><strong>Warning:</strong> ${data.warning || 'None'}</div>
                     <div class="line"><strong>Profile error:</strong> ${data.error || 'None'}</div>
-                    <div class="line"><strong>Subscription error:</strong> ${data.error || 'None'}</div>
+                    <div class="line"><strong>Subscription error:</strong> ${data.subscription_error || 'None'}</div>
                 `;
             } catch (err) {
                 debugBox.innerHTML = `<div class="line"><strong>Debug error:</strong> ${err.message}</div>`;

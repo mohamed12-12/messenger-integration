@@ -116,6 +116,9 @@ def get_messages_file(page_id=None):
 def build_instagram_messages_file(ig_account_id):
     return os.path.join(BASE_DIR, f'instagram_messages_{ig_account_id}.json')
 
+def build_page_webhook_debug_file(page_id):
+    return os.path.join(BASE_DIR, f'webhook_{page_id}.json')
+
 def load_json_list(path):
     if not os.path.exists(path):
         return []
@@ -128,6 +131,33 @@ def load_json_list(path):
 def save_json_list(path, items):
     with open(path, 'w') as f:
         json.dump(items, f)
+
+def save_page_webhook_debug(page_id, endpoint, data, headers):
+    if not page_id:
+        return
+    try:
+        with open(build_page_webhook_debug_file(page_id), 'w') as f:
+            json.dump({
+                'timestamp': time.time(),
+                'endpoint': endpoint,
+                'page_id': page_id,
+                'headers': headers,
+                'data': data
+            }, f)
+    except Exception as e:
+        logger.error(f"Page webhook debug write failed for {page_id}: {e}")
+
+def load_page_webhook_debug(page_id):
+    if not page_id:
+        return None
+    path = build_page_webhook_debug_file(page_id)
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return None
 
 def iter_storage_files(prefix):
     for filename in os.listdir(BASE_DIR):
@@ -723,6 +753,7 @@ def instagram_webhook_event(agent_id=None):
     for entry in data.get('entry', []):
         entry_id = entry.get('id')
         last_webhook_info['entry_id'] = entry_id
+        save_page_webhook_debug(entry_id, '/instagram/webhook', data, dict(request.headers))
         for messaging in entry.get('messaging', []):
             sender_id = messaging.get('sender', {}).get('id')
             last_webhook_info['sender_id'] = sender_id
@@ -913,12 +944,28 @@ def get_webhook_last_hit():
 @app.route('/api/debug/<page_id>')
 def debug_page(page_id):
     page_token = get_page_token(page_id)
+    page_name = get_saved_page_name(page_id) or session.get('connected_page_name') or f'Page {page_id}'
+    page_messages = load_messages(page_id)
+    global_messages = load_messages()
+    page_hit = load_page_webhook_debug(page_id)
+    last_hit_matches = bool(last_webhook_info['entry_id'] == page_id)
     if not page_token:
         return jsonify({
+            'connected_page_id': page_id,
+            'connected_page_name': page_name,
             'primary_receiver': 'Unknown',
             'is_primary': 'Unknown',
             'subscribed_fields': [],
             'page_token_exists': False,
+            'message_count': len(global_messages),
+            'page_message_count': len(page_messages),
+            'last_entry_id': last_webhook_info['entry_id'],
+            'last_object_type': last_webhook_info['object_type'],
+            'last_hit_matches_connected_page': last_hit_matches,
+            'page_last_webhook_timestamp': (page_hit or {}).get('timestamp'),
+            'page_last_webhook_endpoint': (page_hit or {}).get('endpoint'),
+            'page_has_webhook_hit': bool(page_hit),
+            'warning': 'Page connected, but no webhook received yet for this page.' if not page_hit else None,
             'error': 'No token saved for this page_id. Reconnect via OAuth.'
         })
     try:
@@ -930,22 +977,55 @@ def debug_page(page_id):
             subscribed_fields = app_item.get('subscribed_fields', [])
         
         return jsonify({
+            'connected_page_id': page_id,
+            'connected_page_name': page_name,
             'primary_receiver': 'N/A',
             'is_primary': 'N/A',
             'subscribed_fields': subscribed_fields,
             'is_subscribed': len(subscribed_fields) > 0,
             'page_token_exists': True,
+            'message_count': len(global_messages),
+            'page_message_count': len(page_messages),
+            'last_entry_id': last_webhook_info['entry_id'],
+            'last_object_type': last_webhook_info['object_type'],
+            'last_hit_matches_connected_page': last_hit_matches,
+            'page_last_webhook_timestamp': (page_hit or {}).get('timestamp'),
+            'page_last_webhook_endpoint': (page_hit or {}).get('endpoint'),
+            'page_has_webhook_hit': bool(page_hit),
+            'warning': 'Page connected, but no webhook received yet for this page.' if not page_hit else None,
             'profile_error': None,
             'subscription_error': None
         })
     except Exception as e:
         return jsonify({
+            'connected_page_id': page_id,
+            'connected_page_name': page_name,
             'primary_receiver': 'Unknown',
             'is_primary': 'Unknown',
             'subscribed_fields': [],
             'page_token_exists': True,
+            'message_count': len(global_messages),
+            'page_message_count': len(page_messages),
+            'last_entry_id': last_webhook_info['entry_id'],
+            'last_object_type': last_webhook_info['object_type'],
+            'last_hit_matches_connected_page': last_hit_matches,
+            'page_last_webhook_timestamp': (page_hit or {}).get('timestamp'),
+            'page_last_webhook_endpoint': (page_hit or {}).get('endpoint'),
+            'page_has_webhook_hit': bool(page_hit),
+            'warning': 'Page connected, but no webhook received yet for this page.' if not page_hit else None,
             'subscription_error': str(e)
         })
+
+@app.route('/api/page-webhook-status/<page_id>')
+def page_webhook_status(page_id):
+    page_hit = load_page_webhook_debug(page_id)
+    return jsonify({
+        'page_id': page_id,
+        'has_webhook_hit': bool(page_hit),
+        'last_hit': page_hit,
+        'page_message_count': len(load_messages(page_id)),
+        'matches_last_global_hit': bool(last_webhook_info['entry_id'] == page_id)
+    })
 
 @app.route('/api/messenger-debug')
 def messenger_debug():
@@ -1244,6 +1324,7 @@ def webhook_event():
         for entry in data.get('entry', []):
             page_id = entry.get('id')
             last_webhook_info['entry_id'] = page_id
+            save_page_webhook_debug(page_id, '/webhook', data, dict(request.headers))
             handled_entry = False
 
             for channel_name, source_name in (
@@ -1320,6 +1401,7 @@ def webhook_event():
         for entry in data.get('entry', []):
             entry_id = entry.get('id')
             last_webhook_info['entry_id'] = entry_id
+            save_page_webhook_debug(entry_id, '/webhook', data, dict(request.headers))
             for messaging in entry.get('messaging', []):
                 sender_id = messaging.get('sender', {}).get('id')
                 last_webhook_info['sender_id'] = sender_id
