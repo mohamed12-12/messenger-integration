@@ -155,15 +155,7 @@ def get_page_token(page_id):
 def load_messages(page_id=None):
     if page_id:
         return load_json_list(build_messages_file(page_id))
-
-    messages = []
-    for path in iter_storage_files('messages_'):
-        messages.extend(load_json_list(path))
-
-    if not messages and os.path.exists(LEGACY_MESSAGES_FILE):
-        messages = load_json_list(LEGACY_MESSAGES_FILE)
-
-    return messages
+    return load_json_list(LEGACY_MESSAGES_FILE)
 
 def get_messages_for_page(page_id):
     if not page_id:
@@ -182,11 +174,16 @@ def save_message(msg, page_id=None):
     if not page_id:
         logger.warning("Skipping message save because page_id is missing: %s", msg)
         return
-    messages = load_messages(page_id)
-    messages.insert(0, msg)
-    messages = messages[:15] # Keep last 15
     try:
-        save_json_list(build_messages_file(page_id), messages)
+        page_messages = load_messages(page_id)
+        page_messages.insert(0, msg)
+        page_messages = page_messages[:15]
+        save_json_list(build_messages_file(page_id), page_messages)
+
+        recent_messages = load_messages()
+        recent_messages.insert(0, msg)
+        recent_messages = recent_messages[:15]
+        save_json_list(LEGACY_MESSAGES_FILE, recent_messages)
     except Exception as e:
         logger.error("Failed to write to messages file: %s", e)
 
@@ -356,7 +353,7 @@ def get_connected_page_token(page_id=None):
 def get_primary_receiver_info(page_id):
     page_token = get_page_token(page_id)
     if not page_token:
-        return {'primary_receiver': 'Unknown', 'error': f'No stored page token found for page {page_id}.'}
+        return {'primary_receiver': 'Unknown', 'is_primary': 'Unknown'}
 
     try:
         profile = graph_get('me/messenger_profile', {
@@ -368,10 +365,11 @@ def get_primary_receiver_info(page_id):
         primary_app_id = str((primary_receiver or {}).get('app_id')) if primary_receiver else None
         return {
             'primary_receiver': primary_app_id or 'Unknown',
+            'is_primary': bool(primary_app_id and str(META_APP_ID) == primary_app_id),
             'error': None
         }
     except Exception as e:
-        return {'primary_receiver': 'Unknown', 'error': str(e)}
+        return {'primary_receiver': 'Unknown', 'is_primary': 'Unknown', 'error': str(e)}
 
 def get_instagram_page_token(ig_account_id=None):
     ig_account_id = ig_account_id or session.get('instagram_account_id')
@@ -728,6 +726,15 @@ def instagram_webhook_event(agent_id=None):
                 continue
 
             # Save incoming message to UI feed
+            save_message({
+                'page_id': entry_id,
+                'asset_id': entry_id,
+                'asset_type': 'instagram',
+                'sender_id': sender_id,
+                'text': text,
+                'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
+                'source': 'instagram_webhook'
+            }, page_id=entry_id)
             save_instagram_message({
                 'page_id': entry_id,
                 'asset_id': entry_id,
@@ -752,6 +759,16 @@ def instagram_webhook_event(agent_id=None):
                     response_text = asyncio.run(generate_response(text, agent_data))
                     full_reply = f"{disclosure}{response_text}"
                     send_instagram_message(sender_id, full_reply, token)
+                    save_message({
+                        'page_id': entry_id,
+                        'asset_id': entry_id,
+                        'asset_type': 'instagram',
+                        'sender_id': 'AUTO_REPLY',
+                        'text': full_reply,
+                        'timestamp': int(time.time() * 1000),
+                        'is_reply': True,
+                        'source': 'instagram_auto_reply'
+                    }, page_id=entry_id)
                     save_instagram_message({
                         'page_id': entry_id,
                         'asset_id': entry_id,
@@ -889,9 +906,9 @@ def messenger_debug():
 
             profile_info = get_primary_receiver_info(page_id)
             debug_info['primary_receiver_app_id'] = profile_info['primary_receiver']
-            debug_info['profile_error'] = profile_info['error']
-            if profile_info['primary_receiver'] != 'Unknown':
-                debug_info['current_app_is_primary'] = bool(str(META_APP_ID) == profile_info['primary_receiver'])
+            debug_info['profile_error'] = profile_info.get('error')
+            if profile_info.get('is_primary') != 'Unknown':
+                debug_info['current_app_is_primary'] = profile_info['is_primary']
         else:
             debug_info['subscription_error'] = 'No page access token found for the connected page.'
     except Exception as e:
@@ -1194,6 +1211,15 @@ def webhook_event():
                 last_webhook_info['sender_id'] = sender_id
                 text = messaging.get('message', {}).get('text')
                 if sender_id and text:
+                    save_message({
+                        'page_id': entry_id,
+                        'asset_id': entry_id,
+                        'asset_type': 'instagram',
+                        'sender_id': sender_id,
+                        'text': text,
+                        'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
+                        'source': 'messenger_webhook_ig'
+                    }, page_id=entry_id)
                     save_instagram_message({
                         'page_id': entry_id,
                         'asset_id': entry_id,
