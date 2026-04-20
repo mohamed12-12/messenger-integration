@@ -573,18 +573,41 @@
             }
 
             showResult(true, `<strong>${action} thread control:</strong> success`);
-            updateDebug();
         }
 
         setInterval(updateFeed, 3000);
-        setInterval(updateDebug, 5000);
-        updateFeed();
-        updateDebug();
-        fetchConfig();
 
         btnOwner.onclick = fetchThreadOwner;
         btnRequestControl.onclick = () => runThreadControl('request');
         btnTakeControl.onclick = () => runThreadControl('take');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/debug/{{ page_id }}')
+                .then(r => r.json())
+                .then(data => {
+                    debugBox.innerHTML = `
+                        <div class="line"><strong>Page:</strong> ${data.connected_page_name || 'Unknown'}${data.connected_page_id ? ` (${data.connected_page_id})` : ''}</div>
+                        <div class="line"><strong>Saved token:</strong> ${data.page_token_exists ? 'Yes' : 'No'}</div>
+                        <div class="line"><strong>Subscribed:</strong> ${data.subscribed_fields?.length ? 'Yes' : 'Unknown'}</div>
+                        <div class="line"><strong>Fields:</strong> ${data.subscribed_fields?.length ? data.subscribed_fields.join(', ') : 'None reported'}</div>
+                        <div class="line"><strong>Primary receiver app:</strong> ${typeof data.primary_receiver === 'object' ? JSON.stringify(data.primary_receiver) : (data.primary_receiver_app_id || data.primary_receiver || 'Unknown')}</div>
+                        <div class="line"><strong>This app is primary:</strong> ${data.is_primary === 'Unknown' ? 'Unknown' : (data.is_primary ? 'Yes' : 'No')}</div>
+                        <div class="line"><strong>Agent events saved:</strong> ${data.message_count}</div>
+                        <div class="line"><strong>Current page events saved:</strong> ${data.page_message_count}</div>
+                        <div class="line"><strong>Last webhook page:</strong> ${data.last_entry_id || 'None yet'}</div>
+                        <div class="line"><strong>Matches this page:</strong> ${data.last_hit_matches_connected_page ? 'Yes' : 'No'}</div>
+                        <div class="line"><strong>Last object:</strong> ${data.last_object_type || 'None yet'}</div>
+                        <div class="line"><strong>Profile error:</strong> ${data.error || 'None'}</div>
+                        <div class="line"><strong>Subscription error:</strong> ${data.error || 'None'}</div>
+                    `;
+                })
+                .catch(err => {
+                    debugBox.innerHTML = `<div class="line"><strong>Debug error:</strong> ${err.message}</div>`;
+                });
+
+            updateFeed();
+            fetchConfig();
+        });
 
         form.onsubmit = async (e) => {
             e.preventDefault();

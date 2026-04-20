@@ -873,70 +873,38 @@ def get_webhook_last_hit():
 @app.route('/api/debug/<page_id>')
 def debug_page(page_id):
     page_token = get_page_token(page_id)
-    page_name = session.get('connected_page_name', f'Page {page_id}')
     if not page_token:
         return jsonify({
-            'connected_page_id': page_id,
-            'connected_page_name': page_name,
             'primary_receiver': 'Unknown',
-            'primary_receiver_app_id': 'Unknown',
             'is_primary': 'Unknown',
-            'current_app_is_primary': 'Unknown',
             'subscribed_fields': [],
             'page_token_exists': False,
-            'has_saved_page_token': False,
-            'message_count': len(load_messages()),
-            'page_message_count': len(load_messages(page_id)),
-            'last_entry_id': last_webhook_info['entry_id'],
-            'last_object_type': last_webhook_info['object_type'],
-            'last_hit_matches_connected_page': bool(last_webhook_info['entry_id'] == page_id),
-            'error': 'No page token saved for this page_id'
+            'error': 'No token saved for this page_id. Reconnect via OAuth.'
         })
     try:
-        profile = graph_get('me/messenger_profile', {
-            'fields': 'primary_receiver',
-            'access_token': page_token
-        })
         apps_data = graph_get(f'{page_id}/subscribed_apps', {
             'access_token': page_token
         })
         subscribed_fields = []
-        for app in apps_data.get('data', []):
-            subscribed_fields = app.get('subscribed_fields', [])
-        primary_receiver = profile.get('data', [{}])[0].get('primary_receiver', 'Unknown')
+        for app_item in apps_data.get('data', []):
+            subscribed_fields = app_item.get('subscribed_fields', [])
+        
         return jsonify({
-            'connected_page_id': page_id,
-            'connected_page_name': page_name,
-            'primary_receiver': primary_receiver,
-            'primary_receiver_app_id': (primary_receiver or {}).get('app_id') if isinstance(primary_receiver, dict) else primary_receiver,
-            'is_primary': 'Unknown',
-            'current_app_is_primary': 'Unknown',
+            'primary_receiver': 'N/A',
+            'is_primary': 'N/A',
             'subscribed_fields': subscribed_fields,
+            'is_subscribed': len(subscribed_fields) > 0,
             'page_token_exists': True,
-            'has_saved_page_token': True,
-            'message_count': len(load_messages()),
-            'page_message_count': len(load_messages(page_id)),
-            'last_entry_id': last_webhook_info['entry_id'],
-            'last_object_type': last_webhook_info['object_type'],
-            'last_hit_matches_connected_page': bool(last_webhook_info['entry_id'] == page_id)
+            'profile_error': None,
+            'subscription_error': None
         })
     except Exception as e:
         return jsonify({
-            'connected_page_id': page_id,
-            'connected_page_name': page_name,
             'primary_receiver': 'Unknown',
-            'primary_receiver_app_id': 'Unknown',
             'is_primary': 'Unknown',
-            'current_app_is_primary': 'Unknown',
             'subscribed_fields': [],
             'page_token_exists': True,
-            'has_saved_page_token': True,
-            'message_count': len(load_messages()),
-            'page_message_count': len(load_messages(page_id)),
-            'last_entry_id': last_webhook_info['entry_id'],
-            'last_object_type': last_webhook_info['object_type'],
-            'last_hit_matches_connected_page': bool(last_webhook_info['entry_id'] == page_id),
-            'error': str(e)
+            'subscription_error': str(e)
         })
 
 @app.route('/api/messenger-debug')
