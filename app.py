@@ -730,11 +730,22 @@ def instagram_webhook_event(agent_id=None):
                 logger.info(f"⏭️ Skipping webhook echo from ourselves (Sender: {sender_id})")
                 continue
 
-            message = messaging.get('message', {})
-            text = message.get('text')
-
-            if not text:
-                continue
+            if 'message' in messaging:
+                event_type = 'message'
+                raw_text = messaging['message'].get('text')
+                text = raw_text or '[no text]'
+            elif 'read' in messaging:
+                event_type = 'read'
+                raw_text = None
+                text = '[message read]'
+            elif 'delivery' in messaging:
+                event_type = 'delivery'
+                raw_text = None
+                text = '[message delivered]'
+            else:
+                event_type = 'unknown'
+                raw_text = None
+                text = str(messaging)
 
             # Save incoming message to UI feed
             save_message({
@@ -743,20 +754,25 @@ def instagram_webhook_event(agent_id=None):
                 'asset_type': 'instagram',
                 'sender_id': sender_id,
                 'text': text,
+                'event_type': event_type,
                 'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
                 'source': 'instagram_webhook'
             })
+
+            if event_type != 'message' or not raw_text:
+                continue
+
             save_instagram_message({
                 'page_id': entry_id,
                 'asset_id': entry_id,
                 'asset_type': 'instagram',
                 'sender_id': sender_id,
-                'text': text,
+                'text': raw_text,
                 'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
                 'direction': 'inbound',
                 'source': 'instagram_webhook'
             }, ig_account_id=entry_id)
-            logger.info(f"✅ Saved inbound message from {sender_id}: '{text}'")
+            logger.info(f"✅ Saved inbound message from {sender_id}: '{raw_text}'")
 
             # AI Auto-Responder (only when agent_id route is used)
             if agent_id:
@@ -767,7 +783,7 @@ def instagram_webhook_event(agent_id=None):
                     if sender_id not in first_messages_sent:
                         disclosure = f"{DISCLOSURE_EN}\n\n{DISCLOSURE_AR}\n\n"
                         first_messages_sent.add(sender_id)
-                    response_text = asyncio.run(generate_response(text, agent_data))
+                    response_text = asyncio.run(generate_response(raw_text, agent_data))
                     full_reply = f"{disclosure}{response_text}"
                     send_instagram_message(sender_id, full_reply, token)
                     save_message({
@@ -1220,13 +1236,39 @@ def webhook_event():
                         logger.info("Skipping echo from %s", sender_id)
                         continue
 
-                    message = event.get('message', {})
-                    text = message.get('text')
-                    if not text:
-                        continue
+                    if 'message' in event:
+                        event_type = 'message'
+                        raw_text = event['message'].get('text')
+                        text = raw_text or '[no text]'
+                    elif 'read' in event:
+                        event_type = 'read'
+                        raw_text = None
+                        text = '[message read]'
+                    elif 'delivery' in event:
+                        event_type = 'delivery'
+                        raw_text = None
+                        text = '[message delivered]'
+                    else:
+                        event_type = 'unknown'
+                        raw_text = None
+                        text = str(event)
 
                     ts = event.get('timestamp', int(time.time() * 1000))
-                    record_messenger_text_event(page_id, sender_id, text, ts, source_name)
+                    save_message({
+                        'page_id': page_id,
+                        'asset_id': page_id,
+                        'asset_type': 'page',
+                        'sender_id': sender_id,
+                        'text': text,
+                        'event_type': event_type,
+                        'timestamp': ts,
+                        'source': source_name
+                    })
+
+                    if event_type != 'message' or not raw_text:
+                        continue
+
+                    logger.info("Saved %s message from %s for page %s", source_name, sender_id, page_id)
 
                     if channel_name == 'messaging' and load_config().get('auto_response'):
                         token = get_page_token(page_id)
@@ -1257,28 +1299,46 @@ def webhook_event():
             for messaging in entry.get('messaging', []):
                 sender_id = messaging.get('sender', {}).get('id')
                 last_webhook_info['sender_id'] = sender_id
-                text = messaging.get('message', {}).get('text')
-                if sender_id and text:
+                if 'message' in messaging:
+                    event_type = 'message'
+                    raw_text = messaging['message'].get('text')
+                    text = raw_text or '[no text]'
+                elif 'read' in messaging:
+                    event_type = 'read'
+                    raw_text = None
+                    text = '[message read]'
+                elif 'delivery' in messaging:
+                    event_type = 'delivery'
+                    raw_text = None
+                    text = '[message delivered]'
+                else:
+                    event_type = 'unknown'
+                    raw_text = None
+                    text = str(messaging)
+
+                if sender_id:
                     save_message({
                         'page_id': entry_id,
                         'asset_id': entry_id,
                         'asset_type': 'instagram',
                         'sender_id': sender_id,
                         'text': text,
+                        'event_type': event_type,
                         'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
                         'source': 'messenger_webhook_ig'
                     })
-                    save_instagram_message({
-                        'page_id': entry_id,
-                        'asset_id': entry_id,
-                        'asset_type': 'instagram',
-                        'sender_id': sender_id,
-                        'text': text,
-                        'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
-                        'direction': 'inbound',
-                        'source': 'messenger_webhook_ig'
-                    }, ig_account_id=entry_id)
-                    logger.info(f"✅ Saved Instagram DM from {sender_id}")
+                    if event_type == 'message' and raw_text:
+                        save_instagram_message({
+                            'page_id': entry_id,
+                            'asset_id': entry_id,
+                            'asset_type': 'instagram',
+                            'sender_id': sender_id,
+                            'text': raw_text,
+                            'timestamp': messaging.get('timestamp', int(time.time() * 1000)),
+                            'direction': 'inbound',
+                            'source': 'messenger_webhook_ig'
+                        }, ig_account_id=entry_id)
+                    logger.info(f"✅ Saved Instagram event from {sender_id}: {event_type}")
         return "EVENT_RECEIVED", 200
 
     return "IGNORED", 200
