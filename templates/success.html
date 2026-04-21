@@ -1,10 +1,19 @@
 <!DOCTYPE html>
-<html lang='en'>
-
+<html lang="en">
 <head>
-    <meta charset='UTF-8'>
-    <title>Nanovate — Connected!</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Connected — Nanovate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #1A56DB;
+            --primary-light: #3F83F8;
+            --success: #059669;
+            --bg-gradient: linear-gradient(135deg, #1A56DB 0%, #111827 100%);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,76 +21,194 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-gradient);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
+            color: #1f2937;
         }
 
         .card {
-            background: white;
-            border-radius: 16px;
-            padding: 60px 48px;
-            max-width: 480px;
-            width: 90%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 32px;
+            padding: 60px 40px;
+            max-width: 500px;
+            width: 100%;
             text-align: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
         }
 
-        .icon {
-            font-size: 64px;
-            margin-bottom: 24px;
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        .logo {
-            font-size: 24px;
-            font-weight: 800;
-            color: #1A56DB;
-            margin-bottom: 32px;
+        .success-animation {
+            width: 100px;
+            height: 100px;
+            background: var(--success);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 32px;
+            font-size: 48px;
+            box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(5, 150, 105, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
         }
 
         h1 {
-            font-size: 26px;
-            color: #065F46;
-            margin-bottom: 12px;
-        }
-
-        .page-name {
-            font-size: 18px;
+            font-size: 32px;
+            font-weight: 700;
             color: #111827;
-            font-weight: 600;
-            margin: 16px 0 4px;
-        }
-
-        .page-id {
-            color: #9CA3AF;
-            font-size: 13px;
-            margin-bottom: 32px;
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
         }
 
         p {
-            color: #6B7280;
-            font-size: 15px;
+            color: #4b5563;
+            font-size: 17px;
             line-height: 1.6;
+            margin-bottom: 32px;
+        }
+
+        .info-container {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 32px;
+            text-align: left;
+        }
+
+        .info-row {
+            margin-bottom: 16px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #6b7280;
+            display: block;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #111827;
+            word-break: break-all;
+        }
+
+        .redirect-status {
+            margin-top: 24px;
+            font-size: 14px;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .loader {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            padding: 18px 36px;
+            border-radius: 16px;
+            text-decoration: none;
+            font-weight: 600;
+            display: block;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:active {
+            transform: translateY(0);
         }
     </style>
 </head>
-
 <body>
-    <div class='card'>
-        <div class='logo'>nanovate.io</div>
-        <div class='icon'>✅</div>
-        <h1>Successfully Connected!</h1>
-        <div class='page-name'>{{ page_name }}</div>
-        {% if page_id %}
-        <div class='page-id'>Page ID: {{ page_id }}</div>
-        {% endif %}
-        <p>Your Facebook Messenger is now linked to your
-            AI agent. Your agent will start handling messages
-            automatically.</p>
-    </div>
-</body>
+    <div class="card">
+        <div class="success-animation">✓</div>
+        <h1>Page Connected!</h1>
+        <p>Your Facebook Page is now successfully linked to Nanovate AI.</p>
+        
+        <div class="info-container">
+            <div class="info-row">
+                <span class="label">Connected Page</span>
+                <div class="value">{{ page_name }}</div>
+            </div>
+            {% if page_id %}
+            <div class="info-row">
+                <span class="label">Page ID</span>
+                <div class="value" style="font-family: monospace; color: var(--primary);">{{ page_id }}</div>
+            </div>
+            {% endif %}
+        </div>
 
-</html>
+        <a href="/dashboard/{{ page_id }}" class="btn">
+            Go to Messenger Dashboard
+        </a>
+
+        <div class="redirect-status">
+            <div class="loader"></div>
+            <span>Redirecting in <span id="countdown">5</span> seconds...</span>
+        </div>
+    </div>
+
+    <script>
+        let seconds = 5;
+        const countdownEl = document.getElementById('countdown');
+        const dashboardUrl = "/dashboard/{{ page_id }}";
+
+        const timer = setInterval(() => {
+            seconds--;
+            countdownEl.textContent = seconds;
+            if (seconds <= 0) {
+                clearInterval(timer);
+                window.location.href = dashboardUrl;
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

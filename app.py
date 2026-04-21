@@ -553,7 +553,7 @@ def connect_page(page_id):
             try:
                 save_page_token(page_id, page_token)
             except: pass
-            return redirect(url_for('dashboard', page_id=page_id))
+            return render_template('success.html', page_id=page_id, page_name=page_name)
         return render_template(
             'select_page.html',
             pages=page_options,
