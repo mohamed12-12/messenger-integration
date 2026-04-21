@@ -476,6 +476,9 @@ def auth_callback():
     expected_state = session.pop('oauth_state', None)
 
     if not state or not expected_state or state != expected_state:
+        # Senior Fix: If user hits 'Back' and is already connected, just go to dashboard
+        if session.get('connected_page_id'):
+            return redirect(url_for('dashboard', page_id=session.get('connected_page_id')))
         return render_template('index.html', error='CSRF Error. Please try again.'), 400
     if error:
         return render_template('index.html', error=error_description or error), 400
@@ -609,6 +612,9 @@ def instagram_auth_callback():
     expected_state = session.pop('oauth_state', None)
 
     if not state or not expected_state or state != expected_state:
+        # Senior Fix: If user hits 'Back' and is already connected, just go to dashboard
+        if session.get('instagram_account_id'):
+            return redirect(url_for('instagram_dashboard_page', ig_account_id=session.get('instagram_account_id')))
         return render_template('instagram_index.html', error='CSRF Error. Please try again.'), 400
     if error:
         return render_template('instagram_index.html', error=error_description or error), 400
